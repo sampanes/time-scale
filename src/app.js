@@ -14,15 +14,18 @@ const viewState = {
   animationFrame: null,
 };
 
-const dragState = {
-  pointerId: null,
-  lastY: null,
-};
-
-const touchState = {
+const pointerState = {
+  pointers: new Map(),
+  primaryPointerId: null,
+  startX: null,
+  startY: null,
   lastY: null,
   lastPinchDistance: null,
+  tapCandidateId: null,
+  hasMoved: false,
 };
+
+const TAP_MOVE_THRESHOLD_PX = 8;
 
 const elements = {
   searchInput: document.getElementById("searchInput"),
@@ -348,14 +351,34 @@ function getViewportY(clientY) {
   return clientY - rect.top;
 }
 
-function getTouchDistance(touches) {
-  const dx = touches[0].clientX - touches[1].clientX;
-  const dy = touches[0].clientY - touches[1].clientY;
+function getPointerDistance(pointers) {
+  const dx = pointers[0].clientX - pointers[1].clientX;
+  const dy = pointers[0].clientY - pointers[1].clientY;
   return Math.hypot(dx, dy);
 }
 
-function getTouchCenterY(touches) {
-  return (touches[0].clientY + touches[1].clientY) / 2;
+function getPointerCenterY(pointers) {
+  return (pointers[0].clientY + pointers[1].clientY) / 2;
+}
+
+function trackPointer(event) {
+  pointerState.pointers.set(event.pointerId, {
+    clientX: event.clientX,
+    clientY: event.clientY,
+    pointerType: event.pointerType,
+  });
+}
+
+function getTrackedPointers() {
+  return Array.from(pointerState.pointers.values());
+}
+
+function isInteractiveTarget(target) {
+  return Boolean(target.closest("button, input, textarea, select, a"));
+}
+
+function canUseHoverTooltip(event) {
+  return event.pointerType === "mouse" || window.matchMedia("(hover: hover) and (pointer: fine)").matches;
 }
 
 function showTooltip(event, id) {
@@ -446,11 +469,15 @@ function bindEvents() {
   });
 
   elements.timelineContainer.addEventListener("pointerover", (event) => {
+    if (!canUseHoverTooltip(event)) return;
+
     const itemElement = event.target.closest("[data-timeline-id]");
     if (itemElement) showTooltip(event, itemElement.dataset.timelineId);
   });
 
   elements.timelineContainer.addEventListener("pointerout", (event) => {
+    if (!canUseHoverTooltip(event)) return;
+
     const itemElement = event.target.closest("[data-timeline-id]");
     if (itemElement && !itemElement.contains(event.relatedTarget)) hideTooltip();
   });
@@ -475,80 +502,10 @@ function bindEvents() {
     { passive: false },
   );
 
-  elements.timelineContainer.addEventListener("pointerdown", (event) => {
-    if (!hasSelection() || event.pointerType === "touch") return;
-
-    dragState.pointerId = event.pointerId;
-    dragState.lastY = event.clientY;
-    elements.timelineContainer.classList.add("dragging");
-    elements.timelineContainer.setPointerCapture(event.pointerId);
-  });
-
-  elements.timelineContainer.addEventListener("pointermove", (event) => {
-    if (dragState.pointerId !== event.pointerId || dragState.lastY === null) return;
-
-    panBy(event.clientY - dragState.lastY);
-    dragState.lastY = event.clientY;
-  });
-
-  elements.timelineContainer.addEventListener("pointerup", endPointerDrag);
-  elements.timelineContainer.addEventListener("pointercancel", endPointerDrag);
-
-  elements.timelineContainer.addEventListener(
-    "touchstart",
-    (event) => {
-      if (!hasSelection()) return;
-
-      if (event.touches.length === 1) {
-        touchState.lastY = event.touches[0].clientY;
-        touchState.lastPinchDistance = null;
-      } else if (event.touches.length === 2) {
-        touchState.lastY = null;
-        touchState.lastPinchDistance = getTouchDistance(event.touches);
-      }
-    },
-    { passive: false },
-  );
-
-  elements.timelineContainer.addEventListener(
-    "touchmove",
-    (event) => {
-      if (!hasSelection()) return;
-
-      event.preventDefault();
-      if (event.touches.length === 2 && touchState.lastPinchDistance) {
-        const distance = getTouchDistance(event.touches);
-        const zoomFactor = clamp(distance / touchState.lastPinchDistance, 0.72, 1.38);
-        zoomAt(getViewportY(getTouchCenterY(event.touches)), zoomFactor);
-        touchState.lastPinchDistance = distance;
-        return;
-      }
-
-      if (event.touches.length === 1 && touchState.lastY !== null) {
-        panBy(event.touches[0].clientY - touchState.lastY);
-        touchState.lastY = event.touches[0].clientY;
-      }
-    },
-    { passive: false },
-  );
-
-  elements.timelineContainer.addEventListener("touchend", (event) => {
-    if (event.touches.length === 1) {
-      touchState.lastY = event.touches[0].clientY;
-      touchState.lastPinchDistance = null;
-      return;
-    }
-
-    touchState.lastY = null;
-    touchState.lastPinchDistance = null;
-    snapOffsetToBounds();
-  });
-
-  elements.timelineContainer.addEventListener("touchcancel", () => {
-    touchState.lastY = null;
-    touchState.lastPinchDistance = null;
-    snapOffsetToBounds();
-  });
+  elements.timelineContainer.addEventListener("pointerdown", beginPointerInteraction);
+  elements.timelineContainer.addEventListener("pointermove", updatePointerInteraction);
+  elements.timelineContainer.addEventListener("pointerup", endPointerInteraction);
+  elements.timelineContainer.addEventListener("pointercancel", endPointerInteraction);
 
   window.addEventListener("resize", () => {
     markSelectionChanged();
@@ -556,11 +513,113 @@ function bindEvents() {
   });
 }
 
-function endPointerDrag(event) {
-  if (dragState.pointerId !== event.pointerId) return;
+function beginPointerInteraction(event) {
+  if (!hasSelection() || isInteractiveTarget(event.target)) return;
+  if (event.pointerType === "mouse" && event.button !== 0) return;
 
-  dragState.pointerId = null;
-  dragState.lastY = null;
+  event.preventDefault();
+  hideTooltip();
+  trackPointer(event);
+
+  if (elements.timelineContainer.setPointerCapture) {
+    elements.timelineContainer.setPointerCapture(event.pointerId);
+  }
+
+  const trackedPointers = getTrackedPointers();
+  if (trackedPointers.length === 1) {
+    const itemElement = event.target.closest("[data-timeline-id]");
+    pointerState.primaryPointerId = event.pointerId;
+    pointerState.startX = event.clientX;
+    pointerState.startY = event.clientY;
+    pointerState.lastY = event.clientY;
+    pointerState.lastPinchDistance = null;
+    pointerState.tapCandidateId = itemElement?.dataset.timelineId ?? null;
+    pointerState.hasMoved = false;
+    return;
+  }
+
+  if (trackedPointers.length === 2) {
+    pointerState.lastPinchDistance = getPointerDistance(trackedPointers);
+    pointerState.tapCandidateId = null;
+    pointerState.hasMoved = true;
+    elements.timelineContainer.classList.add("dragging");
+  }
+}
+
+function updatePointerInteraction(event) {
+  const pointer = pointerState.pointers.get(event.pointerId);
+  if (!pointer) return;
+
+  pointer.clientX = event.clientX;
+  pointer.clientY = event.clientY;
+  const trackedPointers = getTrackedPointers();
+
+  if (trackedPointers.length >= 2) {
+    event.preventDefault();
+    const gesturePointers = trackedPointers.slice(0, 2);
+    const distance = getPointerDistance(gesturePointers);
+
+    if (pointerState.lastPinchDistance) {
+      const zoomFactor = clamp(distance / pointerState.lastPinchDistance, 0.72, 1.38);
+      zoomAt(getViewportY(getPointerCenterY(gesturePointers)), zoomFactor);
+    }
+
+    pointerState.lastPinchDistance = distance;
+    pointerState.lastY = null;
+    pointerState.hasMoved = true;
+    elements.timelineContainer.classList.add("dragging");
+    return;
+  }
+
+  if (pointerState.primaryPointerId !== event.pointerId || pointerState.lastY === null) return;
+
+  const distanceFromStart = Math.hypot(event.clientX - pointerState.startX, event.clientY - pointerState.startY);
+  if (distanceFromStart > TAP_MOVE_THRESHOLD_PX) {
+    pointerState.hasMoved = true;
+    pointerState.tapCandidateId = null;
+    elements.timelineContainer.classList.add("dragging");
+  }
+
+  if (pointerState.hasMoved) {
+    event.preventDefault();
+    panBy(event.clientY - pointerState.lastY);
+  }
+
+  pointerState.lastY = event.clientY;
+}
+
+function endPointerInteraction(event) {
+  if (!pointerState.pointers.has(event.pointerId)) return;
+
+  const wasFinalPointer = pointerState.pointers.size === 1;
+
+  if (elements.timelineContainer.releasePointerCapture && elements.timelineContainer.hasPointerCapture(event.pointerId)) {
+    elements.timelineContainer.releasePointerCapture(event.pointerId);
+  }
+
+  pointerState.pointers.delete(event.pointerId);
+
+  if (!wasFinalPointer && pointerState.pointers.size === 1) {
+    const [remainingPointerId, remainingPointer] = pointerState.pointers.entries().next().value;
+    pointerState.primaryPointerId = remainingPointerId;
+    pointerState.startX = remainingPointer.clientX;
+    pointerState.startY = remainingPointer.clientY;
+    pointerState.lastY = remainingPointer.clientY;
+    pointerState.lastPinchDistance = null;
+    pointerState.tapCandidateId = null;
+    pointerState.hasMoved = true;
+    return;
+  }
+
+  if (pointerState.pointers.size > 0) return;
+
+  pointerState.primaryPointerId = null;
+  pointerState.startX = null;
+  pointerState.startY = null;
+  pointerState.lastY = null;
+  pointerState.lastPinchDistance = null;
+  pointerState.tapCandidateId = null;
+  pointerState.hasMoved = false;
   elements.timelineContainer.classList.remove("dragging");
   snapOffsetToBounds();
 }
