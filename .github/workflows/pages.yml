@@ -26,11 +26,7 @@ jobs:
         uses: actions/configure-pages@v5
 
       - name: Build static site
-        run: |
-          mkdir -p _site
-          cp to-scale-time.html _site/index.html
-          cp to-scale-time.html _site/to-scale-time.html
-          touch _site/.nojekyll
+        run: npm run build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4

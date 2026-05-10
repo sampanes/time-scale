@@ -6,9 +6,9 @@ tags: #timeline #javascript #github-pages #science #education #ideas
 
 ## The Concept
 
-A static single-file HTML app hosted on GitHub Pages. You type in any mix of geological eras, periods, epochs, events, or future milestones — it places them on a **true to-scale linear timeline**. The whole point is that it looks broken at cosmic scales. Human civilization is invisible next to the Hadean. That's not a bug, that's the lesson.
+A static ES-module app hosted on GitHub Pages. You type in any mix of geological eras, periods, epochs, events, or future milestones — it places them on a **true to-scale linear timeline**. The whole point is that it looks broken at cosmic scales. Human civilization is invisible next to the Hadean. That's not a bug, that's the lesson.
 
-No backend. No build step. One HTML file. Add events by editing a JSON array.
+No backend and no dependency install. The current build step only copies static files into `_site`. Add events by editing `src/data/timeline-data.js`.
 
 ---
 
@@ -129,7 +129,7 @@ Works identically whether input spans 14 billion years or 3 million years.
 - **Persistent URL state** — encode selected items in URL hash so you can share a specific view
 - **Export / screenshot** — save current view as PNG or SVG
 
-### Data Expansion (Add to DATA array)
+### Data Expansion (Add to `TIMELINE_ITEMS`)
 
 - All remaining epochs (Fortunian, Stage 2... Cambrian stages etc.)
 - Major extinction events with severity data
@@ -159,22 +159,26 @@ Works identically whether input spans 14 billion years or 3 million years.
 
 ```
 your-repo/
-  index.html          ← the whole app, rename to-scale-time.html
-  README.md
-```
-
-That's it. No build step, no npm, no framework. Edit `DATA` array at the top of the HTML to add entries. Commit and push.
-
-If you want to split data out eventually:
-```
-your-repo/
   index.html
-  data/
-    timeline.json     ← DATA array extracted here
-    custom.json       ← your personal additions
+  to-scale-time.html
+  README.md
+  package.json
+  scripts/
+    build-site.mjs
+  src/
+    app.js
+    styles.css
+    data/
+      timeline-data.js
+    lib/
+      search.js
+      time-scale.js
+      timeline-view-model.js
 ```
 
-Fetch with `fetch('./data/timeline.json')` on load.
+`index.html` is the GitHub Pages entry point. `to-scale-time.html` is a compatibility redirect for the old direct URL. Edit `src/data/timeline-data.js` to add entries, presets, or type colors.
+
+Run `npm run build` to create `_site`, then deploy that folder through GitHub Actions.
 
 ---
 

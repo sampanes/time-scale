@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>To Scale: Time</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./src/styles.css">
+</head>
+<body>
+  <header>
+    <h1>To Scale: Time</h1>
+    <span class="subtitle">Linear by default - that's the whole point</span>
+  </header>
+
+  <div class="controls">
+    <div class="input-row">
+      <div class="search-wrap">
+        <input type="text" id="searchInput" placeholder="Type an era, period, epoch, event... (fuzzy search)" autocomplete="off">
+        <div class="autocomplete-list" id="acList"></div>
+      </div>
+      <button class="btn" type="button" data-action="add">Add</button>
+      <button class="btn secondary" type="button" data-action="clear">Clear</button>
+      <label class="scale-toggle">
+        <span class="toggle-switch">
+          <input type="checkbox" id="logToggle">
+          <span class="toggle-track"></span>
+          <span class="toggle-knob"></span>
+        </span>
+        Log scale
+      </label>
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="presets" id="presetControls"></div>
+
+  <div class="log-warning" id="logWarning">
+    Log scale active - ratios are compressed. Toggle off to see true proportions.
+  </div>
+
+  <div class="timeline-container" id="timelineContainer">
+    <div class="empty" id="emptyState">
+      <div class="empty-big">Nothing selected yet</div>
+      <small>Search above or try a preset. Add multiple items to compare their true scale.</small>
+    </div>
+  </div>
+
+  <div class="tooltip" id="tooltip"></div>
+
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
