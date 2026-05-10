@@ -71,7 +71,7 @@ function escapeHtml(value) {
 
 function renderPresets() {
   elements.presetControls.innerHTML = `
-    <span class="preset-label">Try</span>
+    <span class="preset-label">Pick defaults</span>
     ${PRESETS.map((preset) => `<button class="preset-btn" type="button" data-preset-id="${preset.id}">${escapeHtml(preset.label)}</button>`).join("")}
   `;
 }
@@ -252,6 +252,15 @@ function renderDetailPanel() {
   `;
 }
 
+function renderEmptyPresetPicker() {
+  return `
+    <div class="empty-presets" aria-label="Default timelines">
+      <span>Pick defaults</span>
+      ${PRESETS.map((preset) => `<button class="preset-btn" type="button" data-preset-id="${preset.id}">${escapeHtml(preset.label)}</button>`).join("")}
+    </div>
+  `;
+}
+
 function fitCurrentSelection() {
   if (!hasSelection()) return;
 
@@ -353,6 +362,7 @@ function renderTimeline() {
       <div class="empty">
         <div class="empty-big">Nothing selected yet</div>
         <small>Search above or try a preset.</small>
+        ${renderEmptyPresetPicker()}
       </div>
     `;
     scheduleUrlStateUpdate();
@@ -661,6 +671,12 @@ function bindEvents() {
   });
 
   elements.timelineContainer.addEventListener("click", (event) => {
+    const presetButton = event.target.closest("[data-preset-id]");
+    if (presetButton) {
+      loadPreset(presetButton.dataset.presetId);
+      return;
+    }
+
     const viewButton = event.target.closest("[data-view-action]");
     if (viewButton) {
       handleViewAction(viewButton.dataset.viewAction);
