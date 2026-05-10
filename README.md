@@ -6,13 +6,15 @@ A static timeline app for showing geological, historical, and future events on a
 
 There are no runtime dependencies.
 
-For local development, use the built-in Node server:
+For local development, use the included MIME-correct server:
 
 ```sh
 npm run dev
 ```
 
-Open `http://127.0.0.1:8000/` on this machine, or use one of the printed `Network:` URLs from a phone on the same LAN.
+On Windows, you can also double-click `serve-site.bat`.
+
+Open the printed `Local:` URL on this machine, or use one of the printed `Network:` URLs from a phone on the same LAN.
 
 To preview the exact GitHub Pages artifact:
 
@@ -33,8 +35,10 @@ The app uses ES modules, so opening `index.html` directly from the filesystem is
 - `src/app.js` - current UI glue. This should be the easiest file to replace during a GUI rewrite.
 - `src/styles.css` - current visual styling.
 - `assets/favicon.svg` - browser tab icon.
+- `serve-site.bat` - Windows build-and-serve shortcut.
 - `scripts/build-site.mjs` - creates the `_site` folder that GitHub Pages deploys.
-- `scripts/serve-site.mjs` - dependency-free local static server with explicit MIME types for ES modules.
+- `scripts/serve-site.py` - local static server with explicit MIME types for ES modules.
+- `scripts/serve-site.mjs` - Node version of the local static server.
 
 ## GitHub Pages Deployment
 
