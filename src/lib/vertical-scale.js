@@ -94,6 +94,48 @@ export function getContentHeight(range, pxPerMa) {
   return Math.max(1, (range.viewMax - range.viewMin) * pxPerMa);
 }
 
+export function makeVisibleTicks(options) {
+  const { range, pxPerMa, viewportHeight, offsetY = 0, overdrawPx = viewportHeight * 0.5, referenceYear } = options;
+  const contentHeight = getContentHeight(range, pxPerMa);
+  const visibleTopY = Math.max(0, -offsetY - overdrawPx);
+  const visibleBottomY = Math.min(contentHeight, -offsetY + viewportHeight + overdrawPx);
+  const visibleMaxMa = Math.min(range.viewMax, yToMa(visibleTopY, range, pxPerMa));
+  const visibleMinMa = Math.max(range.viewMin, yToMa(visibleBottomY, range, pxPerMa));
+  const plan = createTickPlan(pxPerMa, viewportHeight);
+  const ticks = [];
+  const seenMas = [];
+  const labelledYs = [];
+
+  for (const level of plan.levels) {
+    const firstTickMa = Math.ceil(visibleMinMa / level.intervalMa) * level.intervalMa;
+
+    for (let ma = firstTickMa; ma <= visibleMaxMa + level.intervalMa * 0.5; ma += level.intervalMa) {
+      const normalizedMa = normalizeTickMa(ma);
+      const epsilon = tickEpsilon(normalizedMa, level.intervalMa);
+
+      if (normalizedMa < range.viewMin - epsilon || normalizedMa > range.viewMax + epsilon) continue;
+      if (seenMas.some((seenMa) => Math.abs(seenMa - normalizedMa) <= epsilon)) continue;
+
+      const y = maToY(normalizedMa, range, pxPerMa);
+      const labelCollision = labelledYs.some((labelY) => Math.abs(labelY - y) < 44);
+      const showLabel = level.name === "long" || (level.label && !labelCollision);
+
+      seenMas.push(normalizedMa);
+      if (showLabel) labelledYs.push(y);
+
+      ticks.push({
+        ma: normalizedMa,
+        y,
+        level: level.name,
+        widthPct: level.widthPct,
+        label: showLabel ? formatTickLabel(normalizedMa, { pxPerMa, referenceYear }) : "",
+      });
+    }
+  }
+
+  return ticks.sort((a, b) => a.y - b.y);
+}
+
 export function formatTickLabel(ma, options = {}) {
   const { pxPerMa = 0, referenceYear = new Date().getFullYear() } = options;
 
@@ -113,3 +155,11 @@ export function formatCalendarYear(ma, referenceYear = new Date().getFullYear())
   return `${1 - astronomicalYear} BCE`;
 }
 
+function normalizeTickMa(ma) {
+  if (Object.is(ma, -0) || Math.abs(ma) < 1e-14) return 0;
+  return Number(ma.toPrecision(14));
+}
+
+function tickEpsilon(ma, intervalMa) {
+  return Math.max(Math.abs(ma) * Number.EPSILON * 64, intervalMa * 1e-6, 1e-12);
+}
