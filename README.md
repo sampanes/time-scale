@@ -28,7 +28,7 @@ The app now uses ES modules, so opening `index.html` directly from the filesyste
 - `to-scale-time.html` - compatibility redirect for the old direct URL.
 - `src/data/timeline-data.js` - timeline database, type colors, and presets.
 - `src/lib/search.js` - DOM-free fuzzy search utilities.
-- `src/lib/time-scale.js` - DOM-free Ma formatting, range, tick, linear, and log-scale helpers.
+- `src/lib/time-scale.js` - DOM-free Ma formatting and duration helpers.
 - `src/lib/timeline-view-model.js` - converts selected timeline items into renderable segment/tick data.
 - `src/app.js` - current UI glue. This should be the easiest file to replace during a GUI rewrite.
 - `src/styles.css` - current visual styling.
@@ -41,9 +41,10 @@ This repo deploys with GitHub Actions from `.github/workflows/pages.yml`.
 The workflow:
 
 1. Runs on pushes to `main`, pull requests targeting `main`, and manual dispatches.
-2. Runs `npm run build`.
-3. Uploads `_site` as the GitHub Pages artifact.
-4. Deploys the artifact to GitHub Pages on non-pull-request runs.
+2. Runs `npm test`.
+3. Runs `npm run build`.
+4. Uploads `_site` as the GitHub Pages artifact.
+5. Deploys the artifact to GitHub Pages on non-pull-request runs.
 
 In the repository settings, set **Pages > Build and deployment > Source** to **GitHub Actions**.
 

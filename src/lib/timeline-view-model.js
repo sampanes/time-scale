@@ -1,57 +1,10 @@
-import {
-  SCALE_MODES,
-  createPercentMapper,
-  formatDurationMa,
-  formatMa,
-  getTimelineRange,
-  makeTicks,
-} from "./time-scale.js";
+import { formatDurationMa, formatMa } from "./time-scale.js";
 import { getContentHeight, maToY, makeVisibleTicks } from "./vertical-scale.js";
 
 const DEFAULT_VERTICAL_PADDING_RATIO = 0.08;
 const DEFAULT_MIN_SINGLE_POINT_SPAN_MA = 1;
 const DEFAULT_VERTICAL_PX_PER_MA = 0.01;
 const DEFAULT_VERTICAL_VIEWPORT_HEIGHT = 800;
-
-export function buildTimelineViewModel(items, options = {}) {
-  const { isLog = false, tickCount = 6, typeColors } = options;
-  const range = getTimelineRange(items);
-
-  if (!range) return null;
-
-  const toPercent = createPercentMapper(range, isLog ? SCALE_MODES.LOG : SCALE_MODES.LINEAR);
-  const getColor = createTypeColorPicker(typeColors ?? { event: ["#888888"] });
-  const segments = items.map((item) => {
-    const leftPct = toPercent(item.start_ma);
-    const rightPct = toPercent(item.end_ma);
-    const widthPct = Math.abs(rightPct - leftPct);
-
-    return {
-      id: item.id,
-      name: item.name,
-      type: item.type,
-      start_ma: item.start_ma,
-      end_ma: item.end_ma,
-      color: getColor(item),
-      left: Math.min(leftPct, rightPct),
-      width: widthPct,
-      isPoint: widthPct < 0.05,
-    };
-  });
-
-  return {
-    range,
-    segments,
-    ticks: makeTicks(range, toPercent, tickCount),
-    nowPct: range.viewMin <= 0 && range.viewMax >= 0 ? toPercent(0) : null,
-    labels: {
-      rangeStart: formatMa(range.viewMax),
-      rangeEnd: formatMa(range.viewMin),
-      span: formatDurationMa(Math.abs(range.viewMax - range.viewMin)),
-    },
-    selectedCount: items.length,
-  };
-}
 
 function createTypeColorPicker(typeColors) {
   const counters = {};
