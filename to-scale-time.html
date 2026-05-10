@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>To Scale: Time</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --accent: #f0a500;
+    --accent2: #e05a00;
+    --text: #e8e6df;
+    --muted: #6b6a72;
+    --now: #00ff88;
+    --future: #7b4fff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 2rem 2rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    font-style: italic;
+    letter-spacing: -0.02em;
+    color: var(--accent);
+  }
+
+  .subtitle {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  .controls {
+    padding: 1.2rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 200px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    padding: 0.55rem 0.8rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input[type="text"]:focus { border-color: var(--accent); }
+
+  .autocomplete-list {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: #1a1a26;
+    border: 1px solid var(--accent);
+    border-top: none;
+    z-index: 100;
+    max-height: 220px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .autocomplete-list.open { display: block; }
+
+  .ac-item {
+    padding: 0.45rem 0.8rem;
+    cursor: pointer;
+    font-size: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .ac-item:hover, .ac-item.selected { background: var(--border); }
+
+  .ac-type {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .btn {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.55rem 1rem;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn:hover { background: var(--accent2); color: #fff; }
+  .btn.secondary {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+  }
+  .btn.secondary:hover { border-color: var(--accent); color: var(--accent); background: transparent; }
+
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-height: 1.8rem;
+    align-items: center;
+  }
+
+  .chip {
+    background: var(--border);
+    border: 1px solid #2a2a3e;
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    cursor: default;
+  }
+
+  .chip-x {
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+  .chip-x:hover { color: var(--accent2); }
+
+  .scale-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 18px;
+    cursor: pointer;
+  }
+
+  .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border: 1px solid #2a2a3e;
+    transition: background 0.2s;
+  }
+
+  .toggle-switch input:checked + .toggle-track { background: var(--future); }
+
+  .toggle-knob {
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 12px; height: 12px;
+    background: var(--muted);
+    transition: transform 0.2s, background 0.2s;
+  }
+
+  .toggle-switch input:checked ~ .toggle-knob {
+    transform: translateX(18px);
+    background: #fff;
+  }
+
+  /* Timeline */
+  .timeline-container {
+    padding: 2rem;
+    position: relative;
+  }
+
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .range-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .range-label span { color: var(--accent); }
+
+  .track-wrap {
+    position: relative;
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .track {
+    position: relative;
+    height: 80px;
+    min-width: 600px;
+    background: #0d0d15;
+    border: 1px solid var(--border);
+  }
+
+  .segment {
+    position: absolute;
+    top: 8px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.58rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    overflow: hidden;
+    cursor: pointer;
+    transition: filter 0.15s, top 0.15s;
+    border-right: 1px solid rgba(0,0,0,0.4);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    user-select: none;
+  }
+
+  .segment:hover { filter: brightness(1.2); top: 6px; }
+
+  .segment-label {
+    writing-mode: horizontal-tb;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 4px;
+    pointer-events: none;
+  }
+
+  .now-line {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 2px;
+    background: var(--now);
+    box-shadow: 0 0 8px var(--now);
+    z-index: 10;
+  }
+
+  .now-label {
+    position: absolute;
+    top: -1.4rem;
+    transform: translateX(-50%);
+    font-size: 0.55rem;
+    color: var(--now);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+  }
+
+  .tick-row {
+    position: relative;
+    height: 28px;
+    min-width: 600px;
+    margin-top: 2px;
+  }
+
+  .tick {
+    position: absolute;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transform: translateX(-50%);
+  }
+
+  .tick-line {
+    width: 1px;
+    height: 6px;
+    background: var(--border);
+  }
+
+  .tick-label {
+    font-size: 0.5rem;
+    color: var(--muted);
+    white-space: nowrap;
+    margin-top: 2px;
+  }
+
+  /* Tooltip */
+  .tooltip {
+    display: none;
+    position: fixed;
+    background: #1a1a2e;
+    border: 1px solid var(--accent);
+    padding: 0.6rem 0.8rem;
+    font-size: 0.7rem;
+    z-index: 200;
+    pointer-events: none;
+    max-width: 220px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  }
+
+  .tooltip.visible { display: block; }
+  .tooltip-name { font-weight: 700; color: var(--accent); margin-bottom: 0.3rem; font-family: 'Playfair Display', serif; font-size: 0.85rem; }
+  .tooltip-row { color: var(--muted); margin-top: 0.15rem; }
+  .tooltip-row span { color: var(--text); }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--muted);
+  }
+
+  .empty-big {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    font-style: italic;
+    color: var(--border);
+    margin-bottom: 0.5rem;
+  }
+
+  .empty small { font-size: 0.65rem; }
+
+  /* Log warning */
+  .log-warning {
+    background: rgba(123,79,255,0.1);
+    border: 1px solid var(--future);
+    color: var(--future);
+    font-size: 0.65rem;
+    padding: 0.5rem 0.8rem;
+    margin: 0 2rem;
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .log-warning.show { display: flex; }
+
+  /* Presets */
+  .presets {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    padding: 0.8rem 2rem;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .preset-label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    align-self: center;
+    margin-right: 0.3rem;
+  }
+
+  .preset-btn {
+    font-size: 0.65rem;
+    font-family: 'Space Mono', monospace;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 0.25rem 0.6rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .preset-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>To Scale: Time</h1>
+  <span class="subtitle">Linear by default — that's the whole point</span>
+</header>
+
+<div class="controls">
+  <div class="input-row">
+    <div class="search-wrap">
+      <input type="text" id="searchInput" placeholder="Type an era, period, epoch, event... (fuzzy search)" autocomplete="off" />
+      <div class="autocomplete-list" id="acList"></div>
+    </div>
+    <button class="btn" onclick="addFromInput()">Add</button>
+    <button class="btn secondary" onclick="clearAll()">Clear</button>
+    <label class="scale-toggle">
+      <div class="toggle-switch">
+        <input type="checkbox" id="logToggle" onchange="render()" />
+        <div class="toggle-track"></div>
+        <div class="toggle-knob"></div>
+      </div>
+      Log scale
+    </label>
+  </div>
+  <div class="chips" id="chips"></div>
+</div>
+
+<div class="presets">
+  <span class="preset-label">Try:</span>
+  <button class="preset-btn" onclick="loadPreset(['hadean','archean','proterozoic','phanerozoic'])">Eons</button>
+  <button class="preset-btn" onclick="loadPreset(['cambrian','ordovician','silurian','devonian','carboniferous','permian'])">Paleozoic</button>
+  <button class="preset-btn" onclick="loadPreset(['big bang','first stars','first life','first fish','first sharks','dinosaurs','mass extinction k-pg','first humans','now','sun expands','heat death'])">Big Bang → Heat Death</button>
+  <button class="preset-btn" onclick="loadPreset(['paleogene','neogene','quaternary'])">Recent 3</button>
+  <button class="preset-btn" onclick="loadPreset(['triassic','jurassic','cretaceous'])">Mesozoic</button>
+</div>
+
+<div class="log-warning" id="logWarning">
+  ⚠ Log scale active — ratios are compressed. Toggle off to see true proportions.
+</div>
+
+<div class="timeline-container" id="timelineContainer">
+  <div class="empty" id="emptyState">
+    <div class="empty-big">Nothing selected yet</div>
+    <small>Search above or try a preset. Add multiple items to compare their true scale.</small>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<script>
+// ─── DATA ──────────────────────────────────────────────────────────────────
+// All times in Ma (millions of years ago). Positive = past. Negative = future.
+const DATA = [
+  // Cosmological
+  { id:"big-bang", name:"Big Bang", type:"event", start_ma:13800, end_ma:13800, aliases:["big bang","universe begins","origin"] },
+  { id:"first-stars", name:"First Stars", type:"event", start_ma:13600, end_ma:13600, aliases:["first stars","population iii stars"] },
+  { id:"milky-way-forms", name:"Milky Way Forms", type:"event", start_ma:13200, end_ma:13200, aliases:["milky way","galaxy forms"] },
+  { id:"solar-system", name:"Solar System Forms", type:"event", start_ma:4600, end_ma:4600, aliases:["solar system","sun forms","solar nebula"] },
+
+  // Eons
+  { id:"hadean", name:"Hadean", type:"eon", start_ma:4600, end_ma:4031, aliases:["hadean eon","hadean"] },
+  { id:"archean", name:"Archean", type:"eon", start_ma:4031, end_ma:2500, aliases:["archean","archaean"] },
+  { id:"proterozoic", name:"Proterozoic", type:"eon", start_ma:2500, end_ma:538.8, aliases:["proterozoic"] },
+  { id:"phanerozoic", name:"Phanerozoic", type:"eon", start_ma:538.8, end_ma:0, aliases:["phanerozoic"] },
+
+  // Eras
+  { id:"paleozoic", name:"Paleozoic", type:"era", start_ma:538.8, end_ma:251.9, aliases:["paleozoic","palaeozoic"] },
+  { id:"mesozoic", name:"Mesozoic", type:"era", start_ma:251.9, end_ma:66, aliases:["mesozoic","age of dinosaurs","age of reptiles"] },
+  { id:"cenozoic", name:"Cenozoic", type:"era", start_ma:66, end_ma:0, aliases:["cenozoic","caenozoic","age of mammals"] },
+
+  // Periods — Paleozoic
+  { id:"cambrian", name:"Cambrian", type:"period", start_ma:538.8, end_ma:485.4, aliases:["cambrian","cambrian explosion"] },
+  { id:"ordovician", name:"Ordovician", type:"period", start_ma:485.4, end_ma:443.8, aliases:["ordovician"] },
+  { id:"silurian", name:"Silurian", type:"period", start_ma:443.8, end_ma:419.2, aliases:["silurian"] },
+  { id:"devonian", name:"Devonian", type:"period", start_ma:419.2, end_ma:358.9, aliases:["devonian","age of fishes"] },
+  { id:"carboniferous", name:"Carboniferous", type:"period", start_ma:358.9, end_ma:298.9, aliases:["carboniferous","mississippian","pennsylvanian","coal age"] },
+  { id:"permian", name:"Permian", type:"period", start_ma:298.9, end_ma:251.9, aliases:["permian"] },
+
+  // Periods — Mesozoic
+  { id:"triassic", name:"Triassic", type:"period", start_ma:251.9, end_ma:201.4, aliases:["triassic","triassic period"] },
+  { id:"jurassic", name:"Jurassic", type:"period", start_ma:201.4, end_ma:145, aliases:["jurassic","jurassic period"] },
+  { id:"cretaceous", name:"Cretaceous", type:"period", start_ma:145, end_ma:66, aliases:["cretaceous","cretaceous period"] },
+
+  // Periods — Cenozoic
+  { id:"paleogene", name:"Paleogene", type:"period", start_ma:66, end_ma:23.03, aliases:["paleogene","palaeogene"] },
+  { id:"neogene", name:"Neogene", type:"period", start_ma:23.03, end_ma:2.58, aliases:["neogene"] },
+  { id:"quaternary", name:"Quaternary", type:"period", start_ma:2.58, end_ma:0, aliases:["quaternary"] },
+
+  // Epochs — Paleogene
+  { id:"paleocene", name:"Paleocene", type:"epoch", start_ma:66, end_ma:56, aliases:["paleocene"] },
+  { id:"eocene", name:"Eocene", type:"epoch", start_ma:56, end_ma:33.9, aliases:["eocene"] },
+  { id:"oligocene", name:"Oligocene", type:"epoch", start_ma:33.9, end_ma:23.03, aliases:["oligocene"] },
+
+  // Epochs — Neogene
+  { id:"miocene", name:"Miocene", type:"epoch", start_ma:23.03, end_ma:5.33, aliases:["miocene"] },
+  { id:"pliocene", name:"Pliocene", type:"epoch", start_ma:5.33, end_ma:2.58, aliases:["pliocene"] },
+
+  // Epochs — Quaternary
+  { id:"pleistocene", name:"Pleistocene", type:"epoch", start_ma:2.58, end_ma:0.0117, aliases:["pleistocene","ice age"] },
+  { id:"holocene", name:"Holocene", type:"epoch", start_ma:0.0117, end_ma:0, aliases:["holocene","modern epoch"] },
+
+  // Life events
+  { id:"first-life", name:"First Life", type:"event", start_ma:3800, end_ma:3800, aliases:["first life","earliest life","abiogenesis","prokaryotes"] },
+  { id:"first-eukaryotes", name:"First Eukaryotes", type:"event", start_ma:2100, end_ma:2100, aliases:["eukaryotes","first eukaryotes","complex cells"] },
+  { id:"great-oxidation", name:"Great Oxidation Event", type:"event", start_ma:2400, end_ma:2400, aliases:["great oxidation","oxygen crisis","oxygen catastrophe"] },
+  { id:"first-multicellular", name:"First Multicellular Life", type:"event", start_ma:1200, end_ma:1200, aliases:["multicellular","first multicellular"] },
+  { id:"cambrian-explosion", name:"Cambrian Explosion", type:"event", start_ma:538.8, end_ma:515, aliases:["cambrian explosion","animal diversification"] },
+  { id:"first-fish", name:"First Fish", type:"event", start_ma:530, end_ma:530, aliases:["first fish","fish","vertebrates","jawless fish"] },
+  { id:"first-sharks", name:"First Sharks", type:"event", start_ma:450, end_ma:450, aliases:["sharks","first sharks","chondrichthyes"] },
+  { id:"first-land-plants", name:"First Land Plants", type:"event", start_ma:470, end_ma:470, aliases:["land plants","first plants","plants on land"] },
+  { id:"first-insects", name:"First Insects", type:"event", start_ma:385, end_ma:385, aliases:["insects","first insects"] },
+  { id:"first-amphibians", name:"First Amphibians", type:"event", start_ma:375, end_ma:375, aliases:["amphibians","first amphibians","tetrapods","tiktaalik"] },
+  { id:"first-reptiles", name:"First Reptiles", type:"event", start_ma:312, end_ma:312, aliases:["reptiles","first reptiles","amniotes"] },
+  { id:"permian-extinction", name:"Permian Mass Extinction", type:"event", start_ma:251.9, end_ma:251.9, aliases:["permian extinction","great dying","p-t extinction","end permian"] },
+  { id:"first-dinosaurs", name:"First Dinosaurs", type:"event", start_ma:245, end_ma:245, aliases:["dinosaurs","first dinosaurs"] },
+  { id:"first-mammals", name:"First Mammals", type:"event", start_ma:225, end_ma:225, aliases:["mammals","first mammals"] },
+  { id:"first-birds", name:"First Birds", type:"event", start_ma:150, end_ma:150, aliases:["birds","first birds","archaeopteryx"] },
+  { id:"first-flowers", name:"First Flowering Plants", type:"event", start_ma:130, end_ma:130, aliases:["flowers","flowering plants","angiosperms"] },
+  { id:"mass-extinction-kpg", name:"K-Pg Mass Extinction", type:"event", start_ma:66, end_ma:66, aliases:["k-pg","kpg","cretaceous extinction","asteroid","chicxulub","dinosaur extinction","end cretaceous"] },
+  { id:"first-primates", name:"First Primates", type:"event", start_ma:55, end_ma:55, aliases:["primates","first primates"] },
+  { id:"first-grasses", name:"First Grasses", type:"event", start_ma:55, end_ma:55, aliases:["grass","grasses","grasslands"] },
+  { id:"first-whales", name:"First Whales", type:"event", start_ma:50, end_ma:50, aliases:["whales","first whales","cetaceans"] },
+  { id:"himalayas", name:"Himalayas Begin Forming", type:"event", start_ma:50, end_ma:50, aliases:["himalayas","himalaya","india collision"] },
+  { id:"first-horses", name:"First Horses", type:"event", start_ma:55, end_ma:55, aliases:["horses","first horses","equus","eohippus"] },
+  { id:"first-hominids", name:"First Great Apes", type:"event", start_ma:15, end_ma:15, aliases:["great apes","hominids","hominidae","apes"] },
+  { id:"first-hominins", name:"First Hominins", type:"event", start_ma:7, end_ma:7, aliases:["hominins","bipedal","australopithecus","early humans"] },
+  { id:"homo-erectus", name:"Homo Erectus", type:"event", start_ma:1.9, end_ma:1.9, aliases:["homo erectus","erectus"] },
+  { id:"first-humans", name:"Homo Sapiens", type:"event", start_ma:0.3, end_ma:0.3, aliases:["homo sapiens","humans","first humans","modern humans","people"] },
+  { id:"first-agriculture", name:"First Agriculture", type:"event", start_ma:0.012, end_ma:0.012, aliases:["agriculture","farming","neolithic","civilization begins"] },
+  { id:"now", name:"Now", type:"event", start_ma:0, end_ma:0, aliases:["now","today","present","current"] },
+
+  // Future
+  { id:"sun-expands", name:"Sun Leaves Main Sequence", type:"future", start_ma:-5000, end_ma:-5000, aliases:["sun expands","sun red giant","main sequence","sun dies"] },
+  { id:"earth-sterilized", name:"Earth Surface Sterilized", type:"future", start_ma:-5400, end_ma:-5400, aliases:["earth sterilized","life ends","earth consumed","sun consumes earth"] },
+  { id:"sun-white-dwarf", name:"Sun Becomes White Dwarf", type:"future", start_ma:-7500, end_ma:-7500, aliases:["white dwarf","sun white dwarf"] },
+  { id:"last-stars", name:"Last Stars Burn Out", type:"future", start_ma:-100000000, end_ma:-100000000, aliases:["last stars","stellar era ends","no more stars"] },
+  { id:"heat-death", name:"Heat Death of Universe", type:"future", start_ma:-1e32, end_ma:-1e32, aliases:["heat death","end of universe","maximum entropy","big freeze"] },
+];
+
+// Color palette per type
+const TYPE_COLORS = {
+  eon:    ["#8b1a1a","#a02020","#b52e2e","#c73c3c"],
+  era:    ["#1a4a8b","#1e5aa0","#2269b5","#2878ca"],
+  period: ["#1a6b3a","#207d44","#268f4e","#2ca158"],
+  epoch:  ["#5a4a00","#6e5c00","#826e00","#9a8200"],
+  event:  ["#4a1a6b","#5c207d","#6e268f","#7a2ea0"],
+  future: ["#1a3a5a","#1e4a70","#225a86","#266a9c"],
+};
+
+let selected = [];
+let acIndex = -1;
+
+// ─── FUZZY SEARCH ──────────────────────────────────────────────────────────
+function normalize(s) { return s.toLowerCase().replace(/[^a-z0-9 ]/g,'').trim(); }
+
+function fuzzyScore(query, target) {
+  query = normalize(query);
+  target = normalize(target);
+  if (target === query) return 100;
+  if (target.startsWith(query)) return 90;
+  if (target.includes(query)) return 80;
+  // char-by-char fuzzy
+  let qi = 0, score = 0;
+  for (let ti = 0; ti < target.length && qi < query.length; ti++) {
+    if (target[ti] === query[qi]) { score += (qi === ti ? 2 : 1); qi++; }
+  }
+  return qi === query.length ? Math.round(score / query.length * 40) : 0;
+}
+
+function search(query) {
+  if (!query || query.length < 1) return [];
+  const results = [];
+  for (const item of DATA) {
+    let best = 0;
+    for (const alias of [item.name, ...item.aliases]) {
+      best = Math.max(best, fuzzyScore(query, alias));
+    }
+    if (best > 15) results.push({ item, score: best });
+  }
+  results.sort((a,b) => b.score - a.score);
+  return results.slice(0, 8).map(r => r.item);
+}
+
+// ─── AUTOCOMPLETE ──────────────────────────────────────────────────────────
+const searchInput = document.getElementById('searchInput');
+const acList = document.getElementById('acList');
+
+searchInput.addEventListener('input', () => {
+  acIndex = -1;
+  const q = searchInput.value.trim();
+  const results = search(q);
+  if (!results.length || !q) { acList.classList.remove('open'); return; }
+  acList.innerHTML = results.map((item,i) =>
+    `<div class="ac-item" data-id="${item.id}" onclick="selectItem('${item.id}')">
+      <span>${item.name}</span>
+      <span class="ac-type">${item.type}</span>
+    </div>`
+  ).join('');
+  acList.classList.add('open');
+});
+
+searchInput.addEventListener('keydown', e => {
+  const items = acList.querySelectorAll('.ac-item');
+  if (e.key === 'ArrowDown') { acIndex = Math.min(acIndex+1, items.length-1); highlightAc(items); e.preventDefault(); }
+  else if (e.key === 'ArrowUp') { acIndex = Math.max(acIndex-1, -1); highlightAc(items); e.preventDefault(); }
+  else if (e.key === 'Enter') {
+    if (acIndex >= 0 && items[acIndex]) items[acIndex].click();
+    else addFromInput();
+    e.preventDefault();
+  }
+  else if (e.key === 'Escape') { acList.classList.remove('open'); }
+});
+
+function highlightAc(items) {
+  items.forEach((el,i) => el.classList.toggle('selected', i === acIndex));
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-wrap')) acList.classList.remove('open');
+});
+
+function selectItem(id) {
+  const item = DATA.find(d => d.id === id);
+  if (!item) return;
+  if (!selected.find(s => s.id === id)) {
+    selected.push(item);
+    renderChips();
+    render();
+  }
+  searchInput.value = '';
+  acList.classList.remove('open');
+  searchInput.focus();
+}
+
+function addFromInput() {
+  const q = searchInput.value.trim();
+  if (!q) return;
+  const results = search(q);
+  if (results.length) selectItem(results[0].id);
+}
+
+// ─── CHIPS ─────────────────────────────────────────────────────────────────
+function renderChips() {
+  const chips = document.getElementById('chips');
+  if (!selected.length) { chips.innerHTML = '<span style="font-size:0.65rem;color:var(--muted)">No items selected</span>'; return; }
+  chips.innerHTML = selected.map(item =>
+    `<div class="chip">
+      <span>${item.name}</span>
+      <span class="chip-x" onclick="removeItem('${item.id}')">×</span>
+    </div>`
+  ).join('');
+}
+
+function removeItem(id) {
+  selected = selected.filter(s => s.id !== id);
+  renderChips();
+  render();
+}
+
+function clearAll() {
+  selected = [];
+  renderChips();
+  render();
+}
+
+function loadPreset(names) {
+  selected = [];
+  for (const name of names) {
+    const results = search(name);
+    if (results.length && !selected.find(s => s.id === results[0].id)) {
+      selected.push(results[0]);
+    }
+  }
+  renderChips();
+  render();
+}
+
+// ─── RENDER ────────────────────────────────────────────────────────────────
+function formatMa(ma) {
+  if (ma === 0) return 'Now';
+  if (ma < 0) {
+    const abs = Math.abs(ma);
+    if (abs >= 1e10) return `+${(abs/1e9).toExponential(1)} Ga future`;
+    if (abs >= 1000) return `+${(abs/1000).toFixed(1)} Ga future`;
+    return `+${abs.toFixed(1)} Ma future`;
+  }
+  if (ma < 0.001) return `${(ma*1000000).toFixed(0)} yrs ago`;
+  if (ma < 1) return `${(ma*1000).toFixed(0)} kya`;
+  if (ma >= 1000) return `${(ma/1000).toFixed(2)} Ga ago`;
+  return `${ma.toFixed(2)} Ma ago`;
+}
+
+function toLog(ma, minMa, maxMa) {
+  // Shift so all values are positive for log
+  const shift = Math.abs(minMa) + 1;
+  const val = ma + shift;
+  const minV = minMa + shift;
+  const maxV = maxMa + shift;
+  return (Math.log10(Math.max(val,0.0001)) - Math.log10(Math.max(minV,0.0001))) /
+         (Math.log10(Math.max(maxV,0.0001)) - Math.log10(Math.max(minV,0.0001)));
+}
+
+function render() {
+  const container = document.getElementById('timelineContainer');
+  const emptyState = document.getElementById('emptyState');
+  const logWarning = document.getElementById('logWarning');
+  const isLog = document.getElementById('logToggle').checked;
+
+  logWarning.classList.toggle('show', isLog);
+
+  if (!selected.length) {
+    emptyState.style.display = 'block';
+    container.innerHTML = '';
+    container.appendChild(emptyState);
+    return;
+  }
+
+  // Compute range
+  let minMa = Infinity, maxMa = -Infinity;
+  for (const item of selected) {
+    minMa = Math.min(minMa, item.end_ma);
+    maxMa = Math.max(maxMa, item.start_ma);
+  }
+
+  // Add padding
+  const span = maxMa - minMa;
+  const pad = span * 0.03;
+  const viewMin = minMa - pad;
+  const viewMax = maxMa + pad;
+
+  function toPercent(ma) {
+    if (isLog) {
+      return (1 - toLog(ma, viewMin, viewMax)) * 100;
+    }
+    return ((viewMax - ma) / (viewMax - viewMin)) * 100;
+  }
+
+  // Generate ticks
+  function makeTicks() {
+    const ticks = [];
+    const nTicks = 6;
+    for (let i = 0; i <= nTicks; i++) {
+      const ma = viewMin + (viewMax - viewMin) * (i / nTicks);
+      ticks.push({ ma, pct: toPercent(ma) });
+    }
+    return ticks;
+  }
+
+  // Color assignment
+  const colorCounters = {};
+  function getColor(item) {
+    const palette = TYPE_COLORS[item.type] || TYPE_COLORS.event;
+    colorCounters[item.type] = ((colorCounters[item.type] || 0));
+    const c = palette[colorCounters[item.type] % palette.length];
+    colorCounters[item.type]++;
+    return c;
+  }
+
+  // Segments HTML
+  let segmentsHtml = '';
+  for (const item of selected) {
+    const color = getColor(item);
+    const leftPct = toPercent(item.start_ma);
+    const rightPct = toPercent(item.end_ma);
+    const widthPct = Math.abs(rightPct - leftPct);
+    const left = Math.min(leftPct, rightPct);
+
+    if (widthPct < 0.05) {
+      // Point event — render as line
+      segmentsHtml += `
+        <div class="segment" style="left:${left}%;width:2px;background:${color};top:4px;height:52px;border-right:none;"
+          data-id="${item.id}" onmouseenter="showTip(event,'${item.id}')" onmouseleave="hideTip()">
+        </div>
+        <div style="position:absolute;left:${left}%;top:58px;transform:translateX(-50%);font-size:0.48rem;color:${color};white-space:nowrap;letter-spacing:0.05em;text-transform:uppercase;">
+          ${item.name}
+        </div>`;
+    } else {
+      segmentsHtml += `
+        <div class="segment" style="left:${left}%;width:${widthPct}%;background:${color};"
+          data-id="${item.id}" onmouseenter="showTip(event,'${item.id}')" onmouseleave="hideTip()">
+          <span class="segment-label">${widthPct > 3 ? item.name : ''}</span>
+        </div>`;
+    }
+  }
+
+  // Now line
+  let nowHtml = '';
+  if (viewMin <= 0 && viewMax >= 0) {
+    const nowPct = toPercent(0);
+    nowHtml = `<div class="now-line" style="left:${nowPct}%">
+      <div class="now-label">Now</div>
+    </div>`;
+  }
+
+  // Ticks HTML
+  const ticks = makeTicks();
+  const ticksHtml = ticks.map(t =>
+    `<div class="tick" style="left:${t.pct}%">
+      <div class="tick-line"></div>
+      <div class="tick-label">${formatMa(t.ma)}</div>
+    </div>`
+  ).join('');
+
+  // Range label
+  const rangeLabel = `
+    <div class="range-label">
+      <span>${formatMa(viewMax)}</span> → <span>${formatMa(viewMin)}</span>
+      &nbsp;·&nbsp; span: <span>${formatMa(Math.abs(viewMax - viewMin)).replace(' ago','').replace('Now','0')}</span>
+    </div>
+    <div class="range-label">${selected.length} item${selected.length!==1?'s':''} selected</div>`;
+
+  container.innerHTML = `
+    <div class="timeline-header">${rangeLabel}</div>
+    <div class="track-wrap">
+      <div class="track">${segmentsHtml}${nowHtml}</div>
+      <div class="tick-row">${ticksHtml}</div>
+    </div>`;
+}
+
+// ─── TOOLTIP ───────────────────────────────────────────────────────────────
+const tooltip = document.getElementById('tooltip');
+
+function showTip(e, id) {
+  const item = DATA.find(d => d.id === id);
+  if (!item) return;
+  const dur = item.start_ma - item.end_ma;
+  tooltip.innerHTML = `
+    <div class="tooltip-name">${item.name}</div>
+    <div class="tooltip-row">Type: <span>${item.type}</span></div>
+    <div class="tooltip-row">Start: <span>${formatMa(item.start_ma)}</span></div>
+    ${dur > 0 ? `<div class="tooltip-row">End: <span>${formatMa(item.end_ma)}</span></div>
+    <div class="tooltip-row">Duration: <span>${formatMa(dur).replace(' ago','')}</span></div>` : ''}`;
+  tooltip.classList.add('visible');
+  moveTip(e);
+}
+
+function moveTip(e) {
+  const x = e.clientX + 14;
+  const y = e.clientY - 10;
+  tooltip.style.left = Math.min(x, window.innerWidth - 240) + 'px';
+  tooltip.style.top = Math.min(y, window.innerHeight - 120) + 'px';
+}
+
+document.addEventListener('mousemove', e => {
+  if (tooltip.classList.contains('visible')) moveTip(e);
+});
+
+function hideTip() { tooltip.classList.remove('visible'); }
+
+// ─── INIT ──────────────────────────────────────────────────────────────────
+renderChips();
+render();
+</script>
+</body>
+</html>
