@@ -5,6 +5,7 @@ import { applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomA
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
 
 let selectedItems = [];
+let selectedDetailId = null;
 let autocompleteIndex = -1;
 
 const viewState = {
@@ -12,6 +13,13 @@ const viewState = {
   offsetY: 0,
   selectionKey: "",
   animationFrame: null,
+  urlFrame: null,
+};
+
+const uiState = {
+  chromeCollapsed: false,
+  shareCopied: false,
+  shareResetTimer: null,
 };
 
 const pointerState = {
@@ -28,6 +36,8 @@ const pointerState = {
 const TAP_MOVE_THRESHOLD_PX = 8;
 
 const elements = {
+  appShell: document.querySelector(".app-shell"),
+  brandToggle: document.getElementById("brandToggle"),
   searchInput: document.getElementById("searchInput"),
   autocompleteList: document.getElementById("acList"),
   chips: document.getElementById("chips"),
@@ -40,6 +50,10 @@ const elements = {
 
 function findTimelineItem(id) {
   return TIMELINE_ITEMS.find((item) => item.id === id);
+}
+
+function getSelectionKey() {
+  return selectedItems.map((item) => item.id).join("|");
 }
 
 function search(query) {
@@ -111,6 +125,7 @@ function addFromInput() {
 
 function removeItem(id) {
   selectedItems = selectedItems.filter((item) => item.id !== id);
+  if (selectedDetailId === id) selectedDetailId = null;
   markSelectionChanged();
   renderChips();
   renderTimeline();
@@ -118,6 +133,7 @@ function removeItem(id) {
 
 function clearAll() {
   selectedItems = [];
+  selectedDetailId = null;
   markSelectionChanged();
   renderChips();
   renderTimeline();
@@ -136,6 +152,7 @@ function loadPreset(presetId) {
     }
   }
 
+  selectedDetailId = null;
   markSelectionChanged();
   renderChips();
   renderTimeline();
@@ -143,6 +160,9 @@ function loadPreset(presetId) {
 
 function markSelectionChanged() {
   viewState.selectionKey = "";
+  if (selectedDetailId && !selectedItems.some((item) => item.id === selectedDetailId)) {
+    selectedDetailId = null;
+  }
 }
 
 function renderChips() {
@@ -163,19 +183,184 @@ function renderChips() {
     .join("");
 }
 
+function applyChromeState() {
+  elements.appShell.classList.toggle("chrome-collapsed", uiState.chromeCollapsed);
+  elements.brandToggle.setAttribute("aria-expanded", String(!uiState.chromeCollapsed));
+}
+
+function setChromeCollapsed(collapsed) {
+  uiState.chromeCollapsed = collapsed;
+  applyChromeState();
+  scheduleUrlStateUpdate();
+
+  requestAnimationFrame(() => {
+    snapOffsetToBounds();
+    renderTimeline();
+  });
+}
+
+function selectTimelineDetail(id) {
+  if (!selectedItems.some((item) => item.id === id)) return;
+
+  selectedDetailId = id;
+  renderTimeline();
+}
+
+function closeTimelineDetail() {
+  selectedDetailId = null;
+  renderTimeline();
+}
+
+function renderTimelineToolbar(isEnabled) {
+  const disabled = isEnabled ? "" : " disabled";
+  const shareLabel = uiState.shareCopied ? "Copied" : "Share";
+
+  return `
+    <div class="timeline-toolbar" aria-label="Timeline controls">
+      <button class="tool-btn" type="button" data-view-action="fit" title="Fit selection"${disabled}>Fit</button>
+      <button class="tool-btn icon-btn" type="button" data-view-action="zoom-out" title="Zoom out"${disabled}>-</button>
+      <button class="tool-btn icon-btn" type="button" data-view-action="zoom-in" title="Zoom in"${disabled}>+</button>
+      <button class="tool-btn" type="button" data-view-action="share" title="Copy share link"${disabled}>${shareLabel}</button>
+    </div>
+  `;
+}
+
+function renderDetailPanel() {
+  if (!selectedDetailId) return "";
+
+  const item = selectedItems.find((candidate) => candidate.id === selectedDetailId);
+  if (!item) return "";
+
+  const duration = getItemDurationMa(item);
+  const aliases = item.aliases?.length ? item.aliases.slice(0, 5).join(", ") : "None";
+
+  return `
+    <aside class="detail-panel" aria-label="Selected timeline item">
+      <button class="detail-close" type="button" data-detail-action="close" aria-label="Close details">&times;</button>
+      <div class="detail-name">${escapeHtml(item.name)}</div>
+      <div class="detail-grid">
+        <div>Type</div><span>${escapeHtml(item.type)}</span>
+        <div>Start</div><span>${formatMa(item.start_ma)}</span>
+        <div>End</div><span>${formatMa(item.end_ma)}</span>
+        <div>Duration</div><span>${duration > 0 ? formatDurationMa(duration) : "Point event"}</span>
+      </div>
+      <div class="detail-aliases">
+        <div>Aliases</div>
+        <span>${escapeHtml(aliases)}</span>
+      </div>
+    </aside>
+  `;
+}
+
+function fitCurrentSelection() {
+  if (!hasSelection()) return;
+
+  fitSelectionToViewport(getCurrentRange(), getTimelineViewportHeight());
+  renderTimeline();
+}
+
+function handleViewAction(action) {
+  if (action === "fit") {
+    fitCurrentSelection();
+  } else if (action === "zoom-in") {
+    zoomAt(getTimelineViewportHeight() / 2, 1.25);
+  } else if (action === "zoom-out") {
+    zoomAt(getTimelineViewportHeight() / 2, 0.8);
+  } else if (action === "share") {
+    shareCurrentUrl();
+  }
+}
+
+async function shareCurrentUrl() {
+  writeUrlState();
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(window.location.href);
+    }
+  } catch {
+    // Clipboard access can be blocked outside HTTPS or without a direct gesture.
+  }
+
+  uiState.shareCopied = true;
+  renderTimeline();
+
+  if (uiState.shareResetTimer !== null) clearTimeout(uiState.shareResetTimer);
+  uiState.shareResetTimer = setTimeout(() => {
+    uiState.shareCopied = false;
+    uiState.shareResetTimer = null;
+    renderTimeline();
+  }, 1200);
+}
+
+function readInitialUrlState() {
+  const params = new URLSearchParams(window.location.search);
+  const itemIds = (params.get("items") || "").split(",").filter(Boolean);
+  selectedItems = itemIds.map((id) => findTimelineItem(id)).filter(Boolean);
+
+  const detailId = params.get("selected");
+  selectedDetailId = selectedItems.some((item) => item.id === detailId) ? detailId : null;
+
+  const pxPerMa = Number(params.get("zoom"));
+  const offsetY = Number(params.get("offset"));
+  if (Number.isFinite(pxPerMa) && pxPerMa > 0) viewState.pxPerMa = pxPerMa;
+  if (Number.isFinite(offsetY)) viewState.offsetY = offsetY;
+  if (selectedItems.length && Number.isFinite(pxPerMa) && Number.isFinite(offsetY)) {
+    viewState.selectionKey = getSelectionKey();
+  }
+
+  uiState.chromeCollapsed = params.get("compact") === "1";
+}
+
+function scheduleUrlStateUpdate() {
+  if (viewState.urlFrame !== null) return;
+
+  viewState.urlFrame = requestAnimationFrame(() => {
+    viewState.urlFrame = null;
+    writeUrlState();
+  });
+}
+
+function writeUrlState() {
+  const params = new URLSearchParams();
+
+  if (selectedItems.length) {
+    params.set("items", selectedItems.map((item) => item.id).join(","));
+    params.set("zoom", formatUrlNumber(viewState.pxPerMa));
+    params.set("offset", formatUrlNumber(viewState.offsetY));
+  }
+
+  if (selectedDetailId) params.set("selected", selectedDetailId);
+  if (uiState.chromeCollapsed) params.set("compact", "1");
+
+  const query = params.toString();
+  const nextUrl = `${window.location.pathname}${query ? `?${query}` : ""}${window.location.hash}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+
+  if (nextUrl !== currentUrl) {
+    window.history.replaceState(null, "", nextUrl);
+  }
+}
+
+function formatUrlNumber(value) {
+  return Number(value.toPrecision(8)).toString();
+}
+
 function renderTimeline() {
   if (!selectedItems.length) {
     elements.timelineContainer.innerHTML = `
+      ${renderTimelineToolbar(false)}
       <div class="empty">
         <div class="empty-big">Nothing selected yet</div>
         <small>Search above or try a preset.</small>
       </div>
     `;
+    scheduleUrlStateUpdate();
     return;
   }
 
   const viewportHeight = getTimelineViewportHeight();
-  const selectionKey = selectedItems.map((item) => item.id).join("|");
+  const selectionKey = getSelectionKey();
   const range = getVerticalTimelineRange(selectedItems);
 
   if (viewState.selectionKey !== selectionKey) {
@@ -198,19 +383,22 @@ function renderTimeline() {
       : `<div class="now-line" style="top:${viewModel.nowY}px"><span>Now</span></div>`;
 
   elements.timelineContainer.innerHTML = `
+    ${renderTimelineToolbar(true)}
     <div class="timeline-readout">
       <div>
         <span>${viewModel.labels.rangeStart}</span>
         <span class="readout-arrow">to</span>
         <span>${viewModel.labels.rangeEnd}</span>
       </div>
-      <div>${viewModel.labels.span} span / ${viewModel.selectedCount} selected</div>
+      <div>${viewModel.labels.span} span / ${viewModel.selectedCount} selected / Ma = million years</div>
     </div>
     <div class="timeline-stage" style="height:${viewModel.contentHeight}px;transform:translateY(${viewModel.offsetY}px);">
       <div class="ruler-column">${ticksHtml}</div>
       <div class="event-column">${segmentsHtml}${nowHtml}</div>
     </div>
+    ${renderDetailPanel()}
   `;
+  scheduleUrlStateUpdate();
 }
 
 function renderTick(tick) {
@@ -374,7 +562,7 @@ function getTrackedPointers() {
 }
 
 function isInteractiveTarget(target) {
-  return Boolean(target.closest("button, input, textarea, select, a"));
+  return Boolean(target.closest("button, input, textarea, select, a, .timeline-toolbar, .detail-panel"));
 }
 
 function canUseHoverTooltip(event) {
@@ -413,6 +601,10 @@ function moveTooltip(event) {
 }
 
 function bindEvents() {
+  elements.brandToggle.addEventListener("click", () => {
+    setChromeCollapsed(!uiState.chromeCollapsed);
+  });
+
   elements.searchInput.addEventListener("input", () => {
     const query = elements.searchInput.value.trim();
     const results = search(query);
@@ -466,6 +658,17 @@ function bindEvents() {
   elements.presetControls.addEventListener("click", (event) => {
     const presetButton = event.target.closest("[data-preset-id]");
     if (presetButton) loadPreset(presetButton.dataset.presetId);
+  });
+
+  elements.timelineContainer.addEventListener("click", (event) => {
+    const viewButton = event.target.closest("[data-view-action]");
+    if (viewButton) {
+      handleViewAction(viewButton.dataset.viewAction);
+      return;
+    }
+
+    const detailButton = event.target.closest("[data-detail-action='close']");
+    if (detailButton) closeTimelineDetail();
   });
 
   elements.timelineContainer.addEventListener("pointerover", (event) => {
@@ -592,6 +795,7 @@ function endPointerInteraction(event) {
   if (!pointerState.pointers.has(event.pointerId)) return;
 
   const wasFinalPointer = pointerState.pointers.size === 1;
+  const tappedItemId = wasFinalPointer && !pointerState.hasMoved ? pointerState.tapCandidateId : null;
 
   if (elements.timelineContainer.releasePointerCapture && elements.timelineContainer.hasPointerCapture(event.pointerId)) {
     elements.timelineContainer.releasePointerCapture(event.pointerId);
@@ -622,8 +826,14 @@ function endPointerInteraction(event) {
   pointerState.hasMoved = false;
   elements.timelineContainer.classList.remove("dragging");
   snapOffsetToBounds();
+
+  if (tappedItemId) {
+    selectTimelineDetail(tappedItemId);
+  }
 }
 
+readInitialUrlState();
+applyChromeState();
 renderPresets();
 bindEvents();
 renderChips();
