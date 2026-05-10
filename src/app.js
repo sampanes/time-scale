@@ -1,19 +1,23 @@
 import { PRESETS, TIMELINE_ITEMS, TYPE_COLORS } from "./data/timeline-data.js";
 import { searchTimelineItems } from "./lib/search.js";
-import { buildTimelineViewModel } from "./lib/timeline-view-model.js";
+import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
+import { getContentHeight } from "./lib/vertical-scale.js";
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
 
 let selectedItems = [];
 let autocompleteIndex = -1;
 
+const viewState = {
+  pxPerMa: 1,
+  offsetY: 0,
+  selectionKey: "",
+};
+
 const elements = {
   searchInput: document.getElementById("searchInput"),
   autocompleteList: document.getElementById("acList"),
   chips: document.getElementById("chips"),
-  logToggle: document.getElementById("logToggle"),
-  logWarning: document.getElementById("logWarning"),
   timelineContainer: document.getElementById("timelineContainer"),
-  emptyState: document.getElementById("emptyState"),
   tooltip: document.getElementById("tooltip"),
   presetControls: document.getElementById("presetControls"),
   addButton: document.querySelector("[data-action='add']"),
@@ -39,7 +43,7 @@ function escapeHtml(value) {
 
 function renderPresets() {
   elements.presetControls.innerHTML = `
-    <span class="preset-label">Try:</span>
+    <span class="preset-label">Try</span>
     ${PRESETS.map((preset) => `<button class="preset-btn" type="button" data-preset-id="${preset.id}">${escapeHtml(preset.label)}</button>`).join("")}
   `;
 }
@@ -73,6 +77,7 @@ function selectItem(id) {
 
   if (!selectedItems.find((selected) => selected.id === id)) {
     selectedItems.push(item);
+    markSelectionChanged();
     renderChips();
     renderTimeline();
   }
@@ -92,12 +97,14 @@ function addFromInput() {
 
 function removeItem(id) {
   selectedItems = selectedItems.filter((item) => item.id !== id);
+  markSelectionChanged();
   renderChips();
   renderTimeline();
 }
 
 function clearAll() {
   selectedItems = [];
+  markSelectionChanged();
   renderChips();
   renderTimeline();
 }
@@ -115,8 +122,13 @@ function loadPreset(presetId) {
     }
   }
 
+  markSelectionChanged();
   renderChips();
   renderTimeline();
+}
+
+function markSelectionChanged() {
+  viewState.selectionKey = "";
 }
 
 function renderChips() {
@@ -138,68 +150,102 @@ function renderChips() {
 }
 
 function renderTimeline() {
-  elements.logWarning.classList.toggle("show", elements.logToggle.checked);
-
   if (!selectedItems.length) {
-    elements.emptyState.style.display = "block";
-    elements.timelineContainer.innerHTML = "";
-    elements.timelineContainer.appendChild(elements.emptyState);
+    elements.timelineContainer.innerHTML = `
+      <div class="empty">
+        <div class="empty-big">Nothing selected yet</div>
+        <small>Search above or try a preset.</small>
+      </div>
+    `;
     return;
   }
 
-  const viewModel = buildTimelineViewModel(selectedItems, {
-    isLog: elements.logToggle.checked,
+  const viewportHeight = getTimelineViewportHeight();
+  const selectionKey = selectedItems.map((item) => item.id).join("|");
+  const range = getVerticalTimelineRange(selectedItems);
+
+  if (viewState.selectionKey !== selectionKey) {
+    fitSelectionToViewport(range, viewportHeight);
+    viewState.selectionKey = selectionKey;
+  }
+
+  const viewModel = buildVerticalTimelineViewModel(selectedItems, {
+    pxPerMa: viewState.pxPerMa,
+    viewportHeight,
+    offsetY: viewState.offsetY,
     typeColors: TYPE_COLORS,
   });
 
-  const segmentsHtml = viewModel.segments.map(renderSegment).join("");
+  const ticksHtml = viewModel.ticks.map(renderTick).join("");
+  const segmentsHtml = viewModel.segments.map(renderVerticalSegment).join("");
   const nowHtml =
-    viewModel.nowPct === null
+    viewModel.nowY === null
       ? ""
-      : `<div class="now-line" style="left:${viewModel.nowPct}%"><div class="now-label">Now</div></div>`;
-  const ticksHtml = viewModel.ticks
-    .map(
-      (tick) => `
-        <div class="tick" style="left:${tick.pct}%">
-          <div class="tick-line"></div>
-          <div class="tick-label">${formatMa(tick.ma)}</div>
-        </div>
-      `,
-    )
-    .join("");
+      : `<div class="now-line" style="top:${viewModel.nowY}px"><span>Now</span></div>`;
 
   elements.timelineContainer.innerHTML = `
-    <div class="timeline-header">
-      <div class="range-label">
-        <span>${viewModel.labels.rangeStart}</span> -> <span>${viewModel.labels.rangeEnd}</span>
-        &nbsp;.&nbsp; span: <span>${viewModel.labels.span}</span>
+    <div class="timeline-readout">
+      <div>
+        <span>${viewModel.labels.rangeStart}</span>
+        <span class="readout-arrow">to</span>
+        <span>${viewModel.labels.rangeEnd}</span>
       </div>
-      <div class="range-label">${viewModel.selectedCount} item${viewModel.selectedCount !== 1 ? "s" : ""} selected</div>
+      <div>${viewModel.labels.span} span / ${viewModel.selectedCount} selected</div>
     </div>
-    <div class="track-wrap">
-      <div class="track">${segmentsHtml}${nowHtml}</div>
-      <div class="tick-row">${ticksHtml}</div>
+    <div class="timeline-stage" style="height:${viewModel.contentHeight}px;transform:translateY(${viewModel.offsetY}px);">
+      <div class="ruler-column">${ticksHtml}</div>
+      <div class="event-column">${segmentsHtml}${nowHtml}</div>
     </div>
   `;
 }
 
-function renderSegment(segment) {
+function renderTick(tick) {
+  return `
+    <div class="ruler-tick ruler-tick-${tick.level}" style="top:${tick.y}px;">
+      <div class="ruler-tick-line" style="width:${tick.widthPct}%"></div>
+      ${tick.label ? `<div class="ruler-tick-label">${escapeHtml(tick.label)}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderVerticalSegment(segment) {
+  const colorStyle = `--item-color:${segment.color};`;
+
   if (segment.isPoint) {
     return `
-      <div
-        class="segment"
-        style="left:${segment.left}%;width:2px;background:${segment.color};top:4px;height:52px;border-right:none;"
-        data-id="${segment.id}"
-      ></div>
-      <div class="point-label" style="left:${segment.left}%;color:${segment.color};">${escapeHtml(segment.name)}</div>
+      <div class="event-point" style="top:${segment.y}px;${colorStyle}" data-timeline-id="${segment.id}">
+        <div class="event-point-line"></div>
+        <div class="event-point-label">${escapeHtml(segment.name)}</div>
+      </div>
     `;
   }
 
+  const compactClass = segment.height < 34 ? " compact" : "";
+
   return `
-    <div class="segment" style="left:${segment.left}%;width:${segment.width}%;background:${segment.color};" data-id="${segment.id}">
-      <span class="segment-label">${segment.width > 3 ? escapeHtml(segment.name) : ""}</span>
+    <div
+      class="event-segment${compactClass}"
+      style="top:${segment.top}px;height:${Math.max(segment.height, 2)}px;${colorStyle}"
+      data-timeline-id="${segment.id}"
+    >
+      <span class="event-segment-label">${escapeHtml(segment.name)}</span>
     </div>
   `;
+}
+
+function getTimelineViewportHeight() {
+  return Math.max(320, elements.timelineContainer.clientHeight || Math.floor(window.innerHeight * 0.68));
+}
+
+function fitSelectionToViewport(range, viewportHeight) {
+  const spanMa = Math.max(range.viewMax - range.viewMin, 1e-9);
+  const targetHeight = viewportHeight * 0.86;
+  viewState.pxPerMa = clamp(targetHeight / spanMa, 0.00005, 2_000_000);
+  viewState.offsetY = (viewportHeight - getContentHeight(range, viewState.pxPerMa)) / 2;
+}
+
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
 }
 
 function showTooltip(event, id) {
@@ -209,12 +255,12 @@ function showTooltip(event, id) {
   const duration = getItemDurationMa(item);
   elements.tooltip.innerHTML = `
     <div class="tooltip-name">${escapeHtml(item.name)}</div>
-    <div class="tooltip-row">Type: <span>${escapeHtml(item.type)}</span></div>
-    <div class="tooltip-row">Start: <span>${formatMa(item.start_ma)}</span></div>
+    <div class="tooltip-row">Type <span>${escapeHtml(item.type)}</span></div>
+    <div class="tooltip-row">Start <span>${formatMa(item.start_ma)}</span></div>
     ${
       duration > 0
-        ? `<div class="tooltip-row">End: <span>${formatMa(item.end_ma)}</span></div>
-           <div class="tooltip-row">Duration: <span>${formatDurationMa(duration)}</span></div>`
+        ? `<div class="tooltip-row">End <span>${formatMa(item.end_ma)}</span></div>
+           <div class="tooltip-row">Duration <span>${formatDurationMa(duration)}</span></div>`
         : ""
     }
   `;
@@ -229,8 +275,8 @@ function hideTooltip() {
 function moveTooltip(event) {
   const x = event.clientX + 14;
   const y = event.clientY - 10;
-  elements.tooltip.style.left = `${Math.min(x, window.innerWidth - 240)}px`;
-  elements.tooltip.style.top = `${Math.min(y, window.innerHeight - 120)}px`;
+  elements.tooltip.style.left = `${Math.min(x, window.innerWidth - 260)}px`;
+  elements.tooltip.style.top = `${Math.min(y, window.innerHeight - 140)}px`;
 }
 
 function bindEvents() {
@@ -278,7 +324,6 @@ function bindEvents() {
 
   elements.addButton.addEventListener("click", addFromInput);
   elements.clearButton.addEventListener("click", clearAll);
-  elements.logToggle.addEventListener("change", renderTimeline);
 
   elements.chips.addEventListener("click", (event) => {
     const removeButton = event.target.closest("[data-remove-id]");
@@ -291,17 +336,22 @@ function bindEvents() {
   });
 
   elements.timelineContainer.addEventListener("pointerover", (event) => {
-    const segment = event.target.closest(".segment");
-    if (segment) showTooltip(event, segment.dataset.id);
+    const itemElement = event.target.closest("[data-timeline-id]");
+    if (itemElement) showTooltip(event, itemElement.dataset.timelineId);
   });
 
   elements.timelineContainer.addEventListener("pointerout", (event) => {
-    const segment = event.target.closest(".segment");
-    if (segment && !segment.contains(event.relatedTarget)) hideTooltip();
+    const itemElement = event.target.closest("[data-timeline-id]");
+    if (itemElement && !itemElement.contains(event.relatedTarget)) hideTooltip();
   });
 
   document.addEventListener("mousemove", (event) => {
     if (elements.tooltip.classList.contains("visible")) moveTooltip(event);
+  });
+
+  window.addEventListener("resize", () => {
+    markSelectionChanged();
+    renderTimeline();
   });
 }
 
