@@ -8,13 +8,14 @@ export function formatMa(ma) {
 
   if (ma < 0) {
     const abs = Math.abs(ma);
-    if (abs >= 1e10) return `+${(abs / 1e9).toExponential(1)} Ga future`;
+    if (abs >= 1e9) return `+${abs.toExponential(2)} Ma future`;
     if (abs >= 1000) return `+${(abs / 1000).toFixed(1)} Ga future`;
     return `+${abs.toFixed(1)} Ma future`;
   }
 
   if (ma < 0.001) return `${(ma * 1000000).toFixed(0)} yrs ago`;
   if (ma < 1) return `${(ma * 1000).toFixed(0)} kya`;
+  if (ma >= 1e9) return `${ma.toExponential(2)} Ma ago`;
   if (ma >= 1000) return `${(ma / 1000).toFixed(2)} Ga ago`;
   return `${ma.toFixed(2)} Ma ago`;
 }
@@ -52,17 +53,19 @@ export function getTimelineRange(items, paddingRatio = 0.03) {
 }
 
 export function toLogRatio(ma, minMa, maxMa) {
-  const shift = Math.abs(minMa) + 1;
-  const val = ma + shift;
-  const minValue = minMa + shift;
-  const maxValue = maxMa + shift;
-  const minLog = Math.log10(Math.max(minValue, 0.0001));
-  const maxLog = Math.log10(Math.max(maxValue, 0.0001));
+  const minLog = signedLog(minMa);
+  const maxLog = signedLog(maxMa);
   const denominator = maxLog - minLog;
 
   if (denominator === 0) return 0.5;
 
-  return (Math.log10(Math.max(val, 0.0001)) - minLog) / denominator;
+  return (signedLog(ma) - minLog) / denominator;
+}
+
+export function signedLog(value) {
+  if (value === 0) return 0;
+
+  return Math.sign(value) * Math.log10(1 + Math.abs(value));
 }
 
 export function createPercentMapper(range, mode = SCALE_MODES.LINEAR) {
