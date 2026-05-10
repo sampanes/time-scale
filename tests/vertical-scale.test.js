@@ -2,12 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  applyRubberDelta,
+  clampOffset,
   createTickPlan,
   formatCalendarYear,
   getContentHeight,
+  getOffsetBounds,
   maToY,
   niceInterval,
   yToMa,
+  zoomAroundY,
 } from "../src/lib/vertical-scale.js";
 
 test("niceInterval rounds raw intervals to 1/2/5 powers of ten", () => {
@@ -46,6 +50,33 @@ test("maToY maps oldest dates to the top and newest dates toward the bottom", ()
 
 test("getContentHeight reflects the current vertical zoom", () => {
   assert.equal(getContentHeight({ viewMax: 100, viewMin: 0 }, 3), 300);
+});
+
+test("getOffsetBounds centers short content and clamps tall content", () => {
+  assert.deepEqual(getOffsetBounds(200, 500), { min: 150, max: 150 });
+  assert.deepEqual(getOffsetBounds(800, 500), { min: -300, max: 0 });
+  assert.equal(clampOffset(50, { min: -300, max: 0 }), 0);
+  assert.equal(clampOffset(-400, { min: -300, max: 0 }), -300);
+});
+
+test("applyRubberDelta slows movement past the scroll bounds", () => {
+  assert.equal(applyRubberDelta(0, 100, { min: -300, max: 0 }), 20);
+  assert.equal(applyRubberDelta(-100, -50, { min: -300, max: 0 }), -150);
+});
+
+test("zoomAroundY keeps the date under the cursor stable before clamping", () => {
+  const range = { viewMax: 100, viewMin: 0 };
+  const zoomed = zoomAroundY({
+    range,
+    pxPerMa: 10,
+    offsetY: 0,
+    viewportY: 100,
+    viewportHeight: 500,
+    zoomFactor: 2,
+  });
+
+  assert.equal(zoomed.pxPerMa, 20);
+  assert.equal(yToMa(100 - zoomed.offsetY, range, zoomed.pxPerMa), 90);
 });
 
 test("formatCalendarYear switches recent Ma values to CE/BCE labels", () => {

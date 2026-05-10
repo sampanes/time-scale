@@ -1,7 +1,7 @@
 import { PRESETS, TIMELINE_ITEMS, TYPE_COLORS } from "./data/timeline-data.js";
 import { searchTimelineItems } from "./lib/search.js";
 import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
-import { getContentHeight } from "./lib/vertical-scale.js";
+import { applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
 
 let selectedItems = [];
@@ -11,6 +11,17 @@ const viewState = {
   pxPerMa: 1,
   offsetY: 0,
   selectionKey: "",
+  animationFrame: null,
+};
+
+const dragState = {
+  pointerId: null,
+  lastY: null,
+};
+
+const touchState = {
+  lastY: null,
+  lastPinchDistance: null,
 };
 
 const elements = {
@@ -248,6 +259,105 @@ function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
 }
 
+function hasSelection() {
+  return selectedItems.length > 0;
+}
+
+function getCurrentRange() {
+  return getVerticalTimelineRange(selectedItems);
+}
+
+function getCurrentBounds(range = getCurrentRange(), viewportHeight = getTimelineViewportHeight()) {
+  return getOffsetBounds(getContentHeight(range, viewState.pxPerMa), viewportHeight);
+}
+
+function panBy(deltaY) {
+  if (!hasSelection()) return;
+
+  cancelOffsetAnimation();
+  const range = getCurrentRange();
+  const bounds = getCurrentBounds(range);
+  viewState.offsetY = applyRubberDelta(viewState.offsetY, deltaY, bounds);
+  renderTimeline();
+}
+
+function zoomAt(viewportY, zoomFactor) {
+  if (!hasSelection()) return;
+
+  cancelOffsetAnimation();
+  const viewportHeight = getTimelineViewportHeight();
+  const next = zoomAroundY({
+    range: getCurrentRange(),
+    pxPerMa: viewState.pxPerMa,
+    offsetY: viewState.offsetY,
+    viewportY,
+    viewportHeight,
+    zoomFactor,
+  });
+
+  viewState.pxPerMa = next.pxPerMa;
+  viewState.offsetY = next.offsetY;
+  renderTimeline();
+}
+
+function snapOffsetToBounds() {
+  if (!hasSelection()) return;
+
+  const targetOffsetY = clampOffset(viewState.offsetY, getCurrentBounds());
+  if (Math.abs(targetOffsetY - viewState.offsetY) < 0.5) {
+    viewState.offsetY = targetOffsetY;
+    renderTimeline();
+    return;
+  }
+
+  animateOffsetTo(targetOffsetY);
+}
+
+function animateOffsetTo(targetOffsetY) {
+  cancelOffsetAnimation();
+
+  const startOffsetY = viewState.offsetY;
+  const startTime = performance.now();
+  const durationMs = 220;
+
+  function step(now) {
+    const progress = clamp((now - startTime) / durationMs, 0, 1);
+    const eased = 1 - (1 - progress) ** 3;
+    viewState.offsetY = startOffsetY + (targetOffsetY - startOffsetY) * eased;
+    renderTimeline();
+
+    if (progress < 1) {
+      viewState.animationFrame = requestAnimationFrame(step);
+    } else {
+      viewState.animationFrame = null;
+    }
+  }
+
+  viewState.animationFrame = requestAnimationFrame(step);
+}
+
+function cancelOffsetAnimation() {
+  if (viewState.animationFrame !== null) {
+    cancelAnimationFrame(viewState.animationFrame);
+    viewState.animationFrame = null;
+  }
+}
+
+function getViewportY(clientY) {
+  const rect = elements.timelineContainer.getBoundingClientRect();
+  return clientY - rect.top;
+}
+
+function getTouchDistance(touches) {
+  const dx = touches[0].clientX - touches[1].clientX;
+  const dy = touches[0].clientY - touches[1].clientY;
+  return Math.hypot(dx, dy);
+}
+
+function getTouchCenterY(touches) {
+  return (touches[0].clientY + touches[1].clientY) / 2;
+}
+
 function showTooltip(event, id) {
   const item = findTimelineItem(id);
   if (!item) return;
@@ -349,10 +459,110 @@ function bindEvents() {
     if (elements.tooltip.classList.contains("visible")) moveTooltip(event);
   });
 
+  elements.timelineContainer.addEventListener(
+    "wheel",
+    (event) => {
+      if (!hasSelection()) return;
+
+      event.preventDefault();
+      if (event.ctrlKey) {
+        zoomAt(getViewportY(event.clientY), clamp(Math.exp(-event.deltaY * 0.002), 0.72, 1.38));
+        return;
+      }
+
+      panBy(-event.deltaY);
+    },
+    { passive: false },
+  );
+
+  elements.timelineContainer.addEventListener("pointerdown", (event) => {
+    if (!hasSelection() || event.pointerType === "touch") return;
+
+    dragState.pointerId = event.pointerId;
+    dragState.lastY = event.clientY;
+    elements.timelineContainer.classList.add("dragging");
+    elements.timelineContainer.setPointerCapture(event.pointerId);
+  });
+
+  elements.timelineContainer.addEventListener("pointermove", (event) => {
+    if (dragState.pointerId !== event.pointerId || dragState.lastY === null) return;
+
+    panBy(event.clientY - dragState.lastY);
+    dragState.lastY = event.clientY;
+  });
+
+  elements.timelineContainer.addEventListener("pointerup", endPointerDrag);
+  elements.timelineContainer.addEventListener("pointercancel", endPointerDrag);
+
+  elements.timelineContainer.addEventListener(
+    "touchstart",
+    (event) => {
+      if (!hasSelection()) return;
+
+      if (event.touches.length === 1) {
+        touchState.lastY = event.touches[0].clientY;
+        touchState.lastPinchDistance = null;
+      } else if (event.touches.length === 2) {
+        touchState.lastY = null;
+        touchState.lastPinchDistance = getTouchDistance(event.touches);
+      }
+    },
+    { passive: false },
+  );
+
+  elements.timelineContainer.addEventListener(
+    "touchmove",
+    (event) => {
+      if (!hasSelection()) return;
+
+      event.preventDefault();
+      if (event.touches.length === 2 && touchState.lastPinchDistance) {
+        const distance = getTouchDistance(event.touches);
+        const zoomFactor = clamp(distance / touchState.lastPinchDistance, 0.72, 1.38);
+        zoomAt(getViewportY(getTouchCenterY(event.touches)), zoomFactor);
+        touchState.lastPinchDistance = distance;
+        return;
+      }
+
+      if (event.touches.length === 1 && touchState.lastY !== null) {
+        panBy(event.touches[0].clientY - touchState.lastY);
+        touchState.lastY = event.touches[0].clientY;
+      }
+    },
+    { passive: false },
+  );
+
+  elements.timelineContainer.addEventListener("touchend", (event) => {
+    if (event.touches.length === 1) {
+      touchState.lastY = event.touches[0].clientY;
+      touchState.lastPinchDistance = null;
+      return;
+    }
+
+    touchState.lastY = null;
+    touchState.lastPinchDistance = null;
+    snapOffsetToBounds();
+  });
+
+  elements.timelineContainer.addEventListener("touchcancel", () => {
+    touchState.lastY = null;
+    touchState.lastPinchDistance = null;
+    snapOffsetToBounds();
+  });
+
   window.addEventListener("resize", () => {
     markSelectionChanged();
     renderTimeline();
   });
+}
+
+function endPointerDrag(event) {
+  if (dragState.pointerId !== event.pointerId) return;
+
+  dragState.pointerId = null;
+  dragState.lastY = null;
+  elements.timelineContainer.classList.remove("dragging");
+  snapOffsetToBounds();
 }
 
 renderPresets();

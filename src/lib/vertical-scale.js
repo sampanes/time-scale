@@ -94,6 +94,54 @@ export function getContentHeight(range, pxPerMa) {
   return Math.max(1, (range.viewMax - range.viewMin) * pxPerMa);
 }
 
+export function getOffsetBounds(contentHeight, viewportHeight) {
+  if (contentHeight <= viewportHeight) {
+    const centeredOffset = (viewportHeight - contentHeight) / 2;
+    return { min: centeredOffset, max: centeredOffset };
+  }
+
+  return {
+    min: viewportHeight - contentHeight,
+    max: 0,
+  };
+}
+
+export function clampOffset(offsetY, bounds) {
+  return Math.min(bounds.max, Math.max(bounds.min, offsetY));
+}
+
+export function applyRubberDelta(offsetY, deltaY, bounds, rubberFactor = 0.2) {
+  const nextOffsetY = offsetY + deltaY;
+
+  if (nextOffsetY > bounds.max || nextOffsetY < bounds.min) {
+    return offsetY + deltaY * rubberFactor;
+  }
+
+  return nextOffsetY;
+}
+
+export function zoomAroundY(options) {
+  const {
+    range,
+    pxPerMa,
+    offsetY,
+    viewportY,
+    viewportHeight,
+    zoomFactor,
+    minPxPerMa = 0.00005,
+    maxPxPerMa = 2_000_000,
+  } = options;
+  const targetMa = yToMa(viewportY - offsetY, range, pxPerMa);
+  const nextPxPerMa = Math.min(maxPxPerMa, Math.max(minPxPerMa, pxPerMa * zoomFactor));
+  const nextOffsetY = viewportY - maToY(targetMa, range, nextPxPerMa);
+  const nextContentHeight = getContentHeight(range, nextPxPerMa);
+
+  return {
+    pxPerMa: nextPxPerMa,
+    offsetY: clampOffset(nextOffsetY, getOffsetBounds(nextContentHeight, viewportHeight)),
+  };
+}
+
 export function makeVisibleTicks(options) {
   const { range, pxPerMa, viewportHeight, offsetY = 0, overdrawPx = viewportHeight * 0.5, referenceYear } = options;
   const contentHeight = getContentHeight(range, pxPerMa);

@@ -277,6 +277,11 @@ input[type="text"]:focus {
     repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 72px),
     var(--bg);
   touch-action: none;
+  cursor: grab;
+}
+
+.timeline-container.dragging {
+  cursor: grabbing;
 }
 
 .timeline-readout {
