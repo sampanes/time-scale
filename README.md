@@ -6,21 +6,21 @@ A static timeline app for showing geological, historical, and future events on a
 
 There are no runtime dependencies.
 
-Build the static site:
+For local development, use the built-in Node server:
 
 ```sh
-npm run build
+npm run dev
 ```
 
-Then serve the artifact directory:
+Open `http://127.0.0.1:8000/` on this machine, or use one of the printed `Network:` URLs from a phone on the same LAN.
+
+To preview the exact GitHub Pages artifact:
 
 ```sh
-python -m http.server 8000 -d _site
+npm run preview
 ```
 
-Open `http://localhost:8000/`.
-
-The app now uses ES modules, so opening `index.html` directly from the filesystem is not a reliable local preview path.
+The app uses ES modules, so opening `index.html` directly from the filesystem is not a reliable local preview path. Avoid `python -m http.server` on Windows for this project because it can serve `.js` files as `text/plain`, which browsers reject for module scripts.
 
 ## Project Layout
 
@@ -32,7 +32,9 @@ The app now uses ES modules, so opening `index.html` directly from the filesyste
 - `src/lib/timeline-view-model.js` - converts selected timeline items into renderable segment/tick data.
 - `src/app.js` - current UI glue. This should be the easiest file to replace during a GUI rewrite.
 - `src/styles.css` - current visual styling.
+- `assets/favicon.svg` - browser tab icon.
 - `scripts/build-site.mjs` - creates the `_site` folder that GitHub Pages deploys.
+- `scripts/serve-site.mjs` - dependency-free local static server with explicit MIME types for ES modules.
 
 ## GitHub Pages Deployment
 
