@@ -82,10 +82,15 @@ export function buildVerticalTimelineViewModel(items, options = {}) {
   if (!range) return null;
 
   const getColor = createTypeColorPicker(typeColors ?? { event: ["#888888"] });
+  const maxDurationMa = Math.max(...items.map((item) => Math.abs(item.start_ma - item.end_ma)), 0);
+  const maxDurationScale = Math.log10(maxDurationMa + 1);
   const segments = items.map((item) => {
     const startY = maToY(item.start_ma, range, pxPerMa);
     const endY = maToY(item.end_ma, range, pxPerMa);
     const isPoint = Math.abs(item.start_ma - item.end_ma) < 1e-12;
+    const durationMa = Math.abs(item.start_ma - item.end_ma);
+    const durationScale = maxDurationScale > 0 ? Math.log10(durationMa + 1) / maxDurationScale : 0;
+    const zIndex = isPoint ? 60 : Math.max(2, Math.round(42 - durationScale * 30));
 
     return {
       id: item.id,
@@ -98,6 +103,8 @@ export function buildVerticalTimelineViewModel(items, options = {}) {
       height: isPoint ? 0 : Math.abs(endY - startY),
       y: isPoint ? startY : null,
       isPoint,
+      durationMa,
+      zIndex,
     };
   });
 

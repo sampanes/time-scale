@@ -212,8 +212,8 @@ function renderTimeline() {
 
 function renderTick(tick) {
   return `
-    <div class="ruler-tick ruler-tick-${tick.level}" style="top:${tick.y}px;">
-      <div class="ruler-tick-line" style="width:${tick.widthPct}%"></div>
+    <div class="ruler-tick ruler-tick-${tick.level}" style="top:${tick.y}px;--tick-width:${tick.widthPct}%;">
+      <div class="ruler-tick-line"></div>
       ${tick.label ? `<div class="ruler-tick-label">${escapeHtml(tick.label)}</div>` : ""}
     </div>
   `;
@@ -224,7 +224,7 @@ function renderVerticalSegment(segment) {
 
   if (segment.isPoint) {
     return `
-      <div class="event-point" style="top:${segment.y}px;${colorStyle}" data-timeline-id="${segment.id}">
+      <div class="event-point" style="top:${segment.y}px;z-index:${segment.zIndex};${colorStyle}" data-timeline-id="${segment.id}">
         <div class="event-point-line"></div>
         <div class="event-point-label">${escapeHtml(segment.name)}</div>
       </div>
@@ -236,7 +236,7 @@ function renderVerticalSegment(segment) {
   return `
     <div
       class="event-segment${compactClass}"
-      style="top:${segment.top}px;height:${Math.max(segment.height, 2)}px;${colorStyle}"
+      style="top:${segment.top}px;height:${Math.max(segment.height, 2)}px;z-index:${segment.zIndex};${colorStyle}"
       data-timeline-id="${segment.id}"
     >
       <span class="event-segment-label">${escapeHtml(segment.name)}</span>

@@ -31,6 +31,7 @@ body {
   color: var(--text);
   font-family: "Space Mono", monospace;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 button,
@@ -41,8 +42,9 @@ input {
 .app-shell {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 100dvh;
   min-width: 320px;
+  padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
 .topbar {
@@ -278,6 +280,10 @@ input[type="text"]:focus {
     var(--bg);
   touch-action: none;
   cursor: grab;
+  user-select: none;
+  overscroll-behavior: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
 }
 
 .timeline-container.dragging {
@@ -326,14 +332,16 @@ input[type="text"]:focus {
 
 .ruler-column {
   left: 0;
-  width: 28%;
-  border-right: 1px solid var(--line);
-  background: rgba(11, 12, 14, 0.76);
+  right: 0;
+  z-index: 0;
+  background: linear-gradient(90deg, rgba(11, 12, 14, 0.72), rgba(11, 12, 14, 0.08) 62%, transparent);
+  pointer-events: none;
 }
 
 .event-column {
   right: 0;
-  left: 28%;
+  left: 0;
+  z-index: 1;
   isolation: isolate;
 }
 
@@ -348,7 +356,8 @@ input[type="text"]:focus {
 .ruler-tick-line {
   position: absolute;
   top: 0;
-  right: 0;
+  left: 0;
+  width: var(--tick-width);
   height: 1px;
   background: var(--line-strong);
 }
@@ -370,13 +379,17 @@ input[type="text"]:focus {
 .ruler-tick-label {
   position: absolute;
   top: -0.55rem;
-  right: calc(60% + 0.55rem);
-  max-width: calc(40% - 0.8rem);
+  left: calc(var(--tick-width) + 0.45rem);
+  max-width: min(13rem, calc(100% - var(--tick-width) - 0.9rem));
   overflow: hidden;
+  border: 1px solid rgba(89, 97, 107, 0.42);
+  border-radius: 4px;
+  background: rgba(5, 5, 7, 0.92);
   color: var(--muted);
   font-size: 0.58rem;
   line-height: 1.1;
-  text-align: right;
+  padding: 0.08rem 0.24rem;
+  text-align: left;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -387,16 +400,22 @@ input[type="text"]:focus {
 
 .event-segment {
   position: absolute;
-  left: clamp(0.75rem, 2vw, 1.4rem);
-  right: clamp(0.75rem, 2vw, 1.4rem);
+  left: 0;
+  right: 0;
   min-height: 2px;
   cursor: pointer;
-  border-left: 3px solid var(--item-color);
-  background: var(--item-color);
-  background: color-mix(in srgb, var(--item-color) 48%, transparent);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--item-color) 42%, transparent);
-  mix-blend-mode: screen;
-  transition: filter 0.15s, box-shadow 0.15s;
+  background: transparent;
+  transition: filter 0.15s;
+}
+
+.event-segment::before {
+  position: absolute;
+  inset: 0;
+  border-left: 4px solid var(--item-color);
+  background: color-mix(in srgb, var(--item-color) 18%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--item-color) 55%, transparent);
+  content: "";
+  pointer-events: none;
 }
 
 .event-segment:hover,
@@ -410,14 +429,18 @@ input[type="text"]:focus {
   display: inline-block;
   max-width: min(28rem, calc(100% - 1rem));
   overflow: hidden;
-  margin: 0.45rem 0 0 0.6rem;
+  margin: 0.45rem 0 0 clamp(0.65rem, 2vw, 1.35rem);
+  border: 1px solid color-mix(in srgb, var(--item-color) 62%, rgba(255, 255, 255, 0.18));
+  border-radius: 4px;
+  background: rgba(5, 5, 7, 0.94);
   color: var(--text);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   line-height: 1.25;
+  padding: 0.16rem 0.38rem;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+  text-shadow: none;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -425,13 +448,14 @@ input[type="text"]:focus {
 .event-segment.compact .event-segment-label {
   transform: translateY(-1.4rem);
   margin-top: 0;
+  background: rgba(5, 5, 7, 0.96);
   color: var(--item-color);
 }
 
 .event-point {
   position: absolute;
-  right: clamp(0.75rem, 2vw, 1.4rem);
-  left: clamp(0.75rem, 2vw, 1.4rem);
+  right: 0;
+  left: 0;
   height: 1px;
   cursor: pointer;
   color: var(--item-color);
@@ -446,13 +470,18 @@ input[type="text"]:focus {
 .event-point-label {
   max-width: min(30rem, calc(100% - 1rem));
   overflow: hidden;
-  margin-top: 0.35rem;
+  width: fit-content;
+  margin: 0.35rem 0 0 clamp(0.65rem, 2vw, 1.35rem);
+  border: 1px solid color-mix(in srgb, var(--item-color) 62%, rgba(255, 255, 255, 0.18));
+  border-radius: 4px;
+  background: rgba(5, 5, 7, 0.94);
   color: var(--text);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+  padding: 0.16rem 0.38rem;
   text-overflow: ellipsis;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+  text-shadow: none;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -579,17 +608,8 @@ input[type="text"]:focus {
     gap: 0.35rem 0.7rem;
   }
 
-  .ruler-column {
-    width: 22%;
-  }
-
-  .event-column {
-    left: 22%;
-  }
-
   .ruler-tick-label {
-    right: calc(64% + 0.35rem);
-    max-width: calc(36% - 0.45rem);
+    max-width: min(8.5rem, calc(100% - var(--tick-width) - 0.7rem));
     font-size: 0.5rem;
   }
 
