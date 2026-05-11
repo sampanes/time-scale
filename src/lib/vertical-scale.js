@@ -14,6 +14,12 @@ export const TICK_WIDTHS = Object.freeze({
 
 const ONE_YEAR_MA = 1 / 1_000_000;
 const ONE_KYA_MA = 0.001;
+const MAX_TICKS_PER_LEVEL = 2000;
+
+export const ZOOM_BOUNDS = Object.freeze({
+  minPxPerMa: 1e-34,
+  maxPxPerMa: 2_000_000,
+});
 
 export function niceInterval(rawInterval) {
   if (!Number.isFinite(rawInterval) || rawInterval <= 0) return 1;
@@ -128,8 +134,8 @@ export function zoomAroundY(options) {
     viewportY,
     viewportHeight,
     zoomFactor,
-    minPxPerMa = 0.00005,
-    maxPxPerMa = 2_000_000,
+    minPxPerMa = ZOOM_BOUNDS.minPxPerMa,
+    maxPxPerMa = ZOOM_BOUNDS.maxPxPerMa,
   } = options;
   const targetMa = yToMa(viewportY - offsetY, range, pxPerMa);
   const nextPxPerMa = Math.min(maxPxPerMa, Math.max(minPxPerMa, pxPerMa * zoomFactor));
@@ -155,9 +161,18 @@ export function makeVisibleTicks(options) {
   const labelledYs = [];
 
   for (const level of plan.levels) {
-    const firstTickMa = Math.ceil(visibleMinMa / level.intervalMa) * level.intervalMa;
+    if (!Number.isFinite(level.intervalMa) || level.intervalMa <= 0) continue;
 
-    for (let ma = firstTickMa; ma <= visibleMaxMa + level.intervalMa * 0.5; ma += level.intervalMa) {
+    const startIndex = Math.ceil(visibleMinMa / level.intervalMa);
+    const endIndex = Math.floor((visibleMaxMa + level.intervalMa * 0.5) / level.intervalMa);
+    if (!Number.isFinite(startIndex) || !Number.isFinite(endIndex)) continue;
+    const tickCount = endIndex - startIndex + 1;
+    if (tickCount <= 0 || tickCount > MAX_TICKS_PER_LEVEL) continue;
+
+    // Iterate via a small integer counter — accumulating into `index` directly is unsafe
+    // when |startIndex| exceeds 2^53 (e.g. heat-death scale), because `index++` is a no-op.
+    for (let step = 0; step < tickCount; step++) {
+      const ma = (startIndex + step) * level.intervalMa;
       const normalizedMa = normalizeTickMa(ma);
       const epsilon = tickEpsilon(normalizedMa, level.intervalMa);
 
