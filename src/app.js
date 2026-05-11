@@ -1,7 +1,7 @@
 import { PRESETS, TIMELINE_ITEMS, TYPE_COLORS } from "./data/timeline-data.js";
 import { searchTimelineItems } from "./lib/search.js";
 import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
-import { applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
+import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
 
 let selectedItems = [];
@@ -385,12 +385,18 @@ function renderTimeline() {
     typeColors: TYPE_COLORS,
   });
 
-  const ticksHtml = viewModel.ticks.map(renderTick).join("");
-  const segmentsHtml = viewModel.segments.map(renderVerticalSegment).join("");
-  const nowHtml =
-    viewModel.nowY === null
-      ? ""
-      : `<div class="now-line" style="top:${viewModel.nowY}px"><span>Now</span></div>`;
+  const renderOffsetY = viewState.offsetY;
+  const cullSlack = Math.max(viewportHeight, 400);
+  const viewportTop = -cullSlack;
+  const viewportBottom = viewportHeight + cullSlack;
+
+  const ticksHtml = viewModel.ticks
+    .map((tick) => renderTick(tick, renderOffsetY, viewportTop, viewportBottom))
+    .join("");
+  const segmentsHtml = viewModel.segments
+    .map((segment) => renderVerticalSegment(segment, renderOffsetY, viewportTop, viewportBottom))
+    .join("");
+  const nowHtml = renderNowLine(viewModel.nowY, renderOffsetY, viewportTop, viewportBottom);
 
   elements.timelineContainer.innerHTML = `
     ${renderTimelineToolbar(true)}
@@ -402,7 +408,7 @@ function renderTimeline() {
       </div>
       <div>${viewModel.labels.span} span / ${viewModel.selectedCount} selected / Ma = million years</div>
     </div>
-    <div class="timeline-stage" style="height:${viewModel.contentHeight}px;transform:translateY(${viewModel.offsetY}px);">
+    <div class="timeline-stage" style="height:${viewportHeight}px;">
       <div class="ruler-column">${ticksHtml}</div>
       <div class="event-column">${segmentsHtml}${nowHtml}</div>
     </div>
@@ -411,38 +417,60 @@ function renderTimeline() {
   scheduleUrlStateUpdate();
 }
 
-function renderTick(tick) {
+function renderTick(tick, offsetY, viewportTop, viewportBottom) {
+  const y = tick.y + offsetY;
+  if (!Number.isFinite(y) || y < viewportTop || y > viewportBottom) return "";
+
   return `
-    <div class="ruler-tick ruler-tick-${tick.level}" style="top:${tick.y}px;--tick-width:${tick.widthPct}%;">
+    <div class="ruler-tick ruler-tick-${tick.level}" style="top:${y}px;--tick-width:${tick.widthPct}%;">
       <div class="ruler-tick-line"></div>
       ${tick.label ? `<div class="ruler-tick-label">${escapeHtml(tick.label)}</div>` : ""}
     </div>
   `;
 }
 
-function renderVerticalSegment(segment) {
+function renderVerticalSegment(segment, offsetY, viewportTop, viewportBottom) {
   const colorStyle = `--item-color:${segment.color};`;
 
   if (segment.isPoint) {
+    const y = segment.y + offsetY;
+    if (!Number.isFinite(y) || y < viewportTop || y > viewportBottom) return "";
+
     return `
-      <div class="event-point" style="top:${segment.y}px;z-index:${segment.zIndex};${colorStyle}" data-timeline-id="${segment.id}">
+      <div class="event-point" style="top:${y}px;z-index:${segment.zIndex};${colorStyle}" data-timeline-id="${segment.id}">
         <div class="event-point-line"></div>
         <div class="event-point-label">${escapeHtml(segment.name)}</div>
       </div>
     `;
   }
 
+  const top = segment.top + offsetY;
+  const bottom = top + segment.height;
+  if (!Number.isFinite(top) || bottom < viewportTop || top > viewportBottom) return "";
+
+  const clampedTop = Math.max(top, viewportTop);
+  const clampedBottom = Math.min(bottom, viewportBottom);
+  const clampedHeight = Math.max(clampedBottom - clampedTop, 2);
   const compactClass = segment.height < 34 ? " compact" : "";
 
   return `
     <div
       class="event-segment${compactClass}"
-      style="top:${segment.top}px;height:${Math.max(segment.height, 2)}px;z-index:${segment.zIndex};${colorStyle}"
+      style="top:${clampedTop}px;height:${clampedHeight}px;z-index:${segment.zIndex};${colorStyle}"
       data-timeline-id="${segment.id}"
     >
       <span class="event-segment-label">${escapeHtml(segment.name)}</span>
     </div>
   `;
+}
+
+function renderNowLine(nowY, offsetY, viewportTop, viewportBottom) {
+  if (nowY === null) return "";
+
+  const y = nowY + offsetY;
+  if (!Number.isFinite(y) || y < viewportTop || y > viewportBottom) return "";
+
+  return `<div class="now-line" style="top:${y}px"><span>Now</span></div>`;
 }
 
 function getTimelineViewportHeight() {
@@ -452,7 +480,7 @@ function getTimelineViewportHeight() {
 function fitSelectionToViewport(range, viewportHeight) {
   const spanMa = Math.max(range.viewMax - range.viewMin, 1e-9);
   const targetHeight = viewportHeight * 0.86;
-  viewState.pxPerMa = clamp(targetHeight / spanMa, 0.00005, 2_000_000);
+  viewState.pxPerMa = clamp(targetHeight / spanMa, ZOOM_BOUNDS.minPxPerMa, ZOOM_BOUNDS.maxPxPerMa);
   viewState.offsetY = (viewportHeight - getContentHeight(range, viewState.pxPerMa)) / 2;
 }
 

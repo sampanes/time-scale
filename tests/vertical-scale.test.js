@@ -8,6 +8,7 @@ import {
   formatCalendarYear,
   getContentHeight,
   getOffsetBounds,
+  makeVisibleTicks,
   maToY,
   niceInterval,
   yToMa,
@@ -77,6 +78,34 @@ test("zoomAroundY keeps the date under the cursor stable before clamping", () =>
 
   assert.equal(zoomed.pxPerMa, 20);
   assert.equal(yToMa(100 - zoomed.offsetY, range, zoomed.pxPerMa), 90);
+});
+
+test("makeVisibleTicks terminates quickly when ma magnitude dwarfs the tick interval", () => {
+  const range = { viewMin: -1.1e30, viewMax: -1e30 + 1000, span: 1.1e30, minMa: -1.1e30, maxMa: -1e30 + 1000 };
+  const start = Date.now();
+  const ticks = makeVisibleTicks({
+    range,
+    pxPerMa: 1,
+    viewportHeight: 800,
+    offsetY: 0,
+  });
+
+  assert.ok(Date.now() - start < 200, "tick generation must not hang");
+  assert.ok(ticks.length < 2000, "tick generation must respect the safety cap");
+});
+
+test("makeVisibleTicks handles a heat-death-scale span without producing absurd tick counts", () => {
+  const range = { viewMin: -1.1e32, viewMax: 1.4e4, span: 1.1e32, minMa: -1e32, maxMa: 13800 };
+  const ticks = makeVisibleTicks({
+    range,
+    pxPerMa: 1e-30,
+    viewportHeight: 800,
+    offsetY: 0,
+  });
+
+  assert.ok(ticks.length > 0, "should still produce some ruler ticks");
+  assert.ok(ticks.length < 50, `expected a small set of long ticks, got ${ticks.length}`);
+  ticks.forEach((tick) => assert.ok(Number.isFinite(tick.y), "each tick y must be finite"));
 });
 
 test("formatCalendarYear switches recent Ma values to CE/BCE labels", () => {
