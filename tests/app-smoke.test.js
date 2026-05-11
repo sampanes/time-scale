@@ -111,7 +111,7 @@ test("app boot wires default presets, autocomplete, and add", async () => {
 
   await import("../src/app.js");
 
-  assert.match(elements.presetControls.innerHTML, /Pick defaults/);
+  assert.match(elements.presetControls.innerHTML, /Presets/);
   assert.match(elements.timelineContainer.innerHTML, /empty-presets/);
 
   elements.searchInput.value = "hadean";

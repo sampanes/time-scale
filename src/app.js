@@ -34,6 +34,11 @@ const pointerState = {
 };
 
 const TAP_MOVE_THRESHOLD_PX = 8;
+const STORAGE_KEYS = {
+  hiddenPresets: "timeScale_hidden_presets",
+  customPresets: "timeScale_custom_presets",
+};
+const volatileStorage = new Map();
 
 const elements = {
   appShell: document.querySelector(".app-shell"),
@@ -69,9 +74,71 @@ function escapeHtml(value) {
     .replace(/'/g, "&#039;");
 }
 
+function readStorageValue(key) {
+  try {
+    if (typeof localStorage !== "undefined") {
+      return localStorage.getItem(key);
+    }
+  } catch {
+    // Storage may be blocked by the browser or unavailable in tests.
+  }
+
+  return volatileStorage.get(key) ?? null;
+}
+
+function writeStorageValue(key, value) {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(key, value);
+      return;
+    }
+  } catch {
+    // Fall through to session-only storage.
+  }
+
+  volatileStorage.set(key, value);
+}
+
+function removeStorageValue(key) {
+  try {
+    if (typeof localStorage !== "undefined") {
+      localStorage.removeItem(key);
+      return;
+    }
+  } catch {
+    // Fall through to session-only storage.
+  }
+
+  volatileStorage.delete(key);
+}
+
+function readStoredArray(key) {
+  const rawValue = readStorageValue(key);
+  if (!rawValue) return [];
+
+  try {
+    const parsed = JSON.parse(rawValue);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredArray(key, value) {
+  writeStorageValue(key, JSON.stringify(value));
+}
+
+function getHiddenPresets() {
+  return readStoredArray(STORAGE_KEYS.hiddenPresets);
+}
+
+function getCustomPresets() {
+  return readStoredArray(STORAGE_KEYS.customPresets);
+}
+
 function renderPresets() {
-  const hidden = JSON.parse(localStorage.getItem("timeScale_hidden_presets") || "[]");
-  const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+  const hidden = getHiddenPresets();
+  const customs = getCustomPresets();
   const visibleBuiltins = PRESETS.filter((p) => !hidden.includes(p.id));
 
   const builtinsHtml = visibleBuiltins
@@ -175,7 +242,7 @@ function clearAll() {
 }
 
 function loadPreset(presetId) {
-  const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+  const customs = getCustomPresets();
   let preset = PRESETS.find((candidate) => candidate.id === presetId);
   if (!preset) {
     preset = customs.find((candidate) => candidate.id === presetId);
@@ -211,26 +278,26 @@ function saveCurrentAsPreset() {
   const label = prompt("Enter a name for this preset:");
   if (!label) return;
 
-  const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+  const customs = getCustomPresets();
   const id = `custom-${Date.now()}`;
   const itemIds = selectedItems.map((item) => item.id);
 
   customs.push({ id, label, itemIds });
-  localStorage.setItem("timeScale_custom_presets", JSON.stringify(customs));
+  writeStoredArray(STORAGE_KEYS.customPresets, customs);
 
   renderPresets();
 }
 
 function deletePreset(id) {
   if (id.startsWith("custom-")) {
-    const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+    const customs = getCustomPresets();
     const filtered = customs.filter((p) => p.id !== id);
-    localStorage.setItem("timeScale_custom_presets", JSON.stringify(filtered));
+    writeStoredArray(STORAGE_KEYS.customPresets, filtered);
   } else {
-    const hidden = JSON.parse(localStorage.getItem("timeScale_hidden_presets") || "[]");
+    const hidden = getHiddenPresets();
     if (!hidden.includes(id)) {
       hidden.push(id);
-      localStorage.setItem("timeScale_hidden_presets", JSON.stringify(hidden));
+      writeStoredArray(STORAGE_KEYS.hiddenPresets, hidden);
     }
   }
 
@@ -238,8 +305,8 @@ function deletePreset(id) {
 }
 
 function resetPresets() {
-  localStorage.removeItem("timeScale_custom_presets");
-  localStorage.removeItem("timeScale_hidden_presets");
+  removeStorageValue(STORAGE_KEYS.customPresets);
+  removeStorageValue(STORAGE_KEYS.hiddenPresets);
   renderPresets();
 }
 
@@ -339,8 +406,8 @@ function renderDetailPanel() {
 }
 
 function renderEmptyPresetPicker() {
-  const hidden = JSON.parse(localStorage.getItem("timeScale_hidden_presets") || "[]");
-  const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+  const hidden = getHiddenPresets();
+  const customs = getCustomPresets();
   const visibleBuiltins = PRESETS.filter((p) => !hidden.includes(p.id));
 
   const builtinsHtml = visibleBuiltins
