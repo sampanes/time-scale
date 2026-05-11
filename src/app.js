@@ -70,9 +70,44 @@ function escapeHtml(value) {
 }
 
 function renderPresets() {
+  const hidden = JSON.parse(localStorage.getItem("timeScale_hidden_presets") || "[]");
+  const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+  const visibleBuiltins = PRESETS.filter((p) => !hidden.includes(p.id));
+
+  const builtinsHtml = visibleBuiltins
+    .map(
+      (p) => `
+    <div class="preset-item">
+      <button class="preset-btn" type="button" data-preset-id="${p.id}">${escapeHtml(p.label)}</button>
+      <button class="preset-delete" type="button" data-delete-id="${p.id}" title="Hide preset">×</button>
+    </div>
+  `,
+    )
+    .join("");
+
+  const customsHtml = customs
+    .map(
+      (p) => `
+    <div class="preset-item">
+      <button class="preset-btn" type="button" data-preset-id="${p.id}">${escapeHtml(p.label)}</button>
+      <button class="preset-delete" type="button" data-delete-id="${p.id}" title="Delete preset">×</button>
+    </div>
+  `,
+    )
+    .join("");
+
   elements.presetControls.innerHTML = `
-    <span class="preset-label">Pick defaults</span>
-    ${PRESETS.map((preset) => `<button class="preset-btn" type="button" data-preset-id="${preset.id}">${escapeHtml(preset.label)}</button>`).join("")}
+    <span class="preset-label">Presets</span>
+    ${builtinsHtml}
+    ${customsHtml}
+    <button class="btn-text" type="button" data-action="save-preset" ${
+      selectedItems.length === 0 ? 'disabled style="opacity: 0.3; cursor: default;"' : ""
+    }>+ Save current</button>
+    ${
+      hidden.length > 0 || customs.length > 0
+        ? `<button class="btn-text" type="button" data-action="reset-presets">Reset all</button>`
+        : ""
+    }
   `;
 }
 
@@ -140,15 +175,27 @@ function clearAll() {
 }
 
 function loadPreset(presetId) {
-  const preset = PRESETS.find((candidate) => candidate.id === presetId);
+  const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+  let preset = PRESETS.find((candidate) => candidate.id === presetId);
+  if (!preset) {
+    preset = customs.find((candidate) => candidate.id === presetId);
+  }
+
   if (!preset) return;
 
   selectedItems = [];
 
-  for (const query of preset.queries) {
-    const [item] = search(query);
-    if (item && !selectedItems.find((selected) => selected.id === item.id)) {
-      selectedItems.push(item);
+  if (preset.queries) {
+    for (const query of preset.queries) {
+      const [item] = search(query);
+      if (item && !selectedItems.find((selected) => selected.id === item.id)) {
+        selectedItems.push(item);
+      }
+    }
+  } else if (preset.itemIds) {
+    for (const id of preset.itemIds) {
+      const item = findTimelineItem(id);
+      if (item) selectedItems.push(item);
     }
   }
 
@@ -158,11 +205,50 @@ function loadPreset(presetId) {
   renderTimeline();
 }
 
+function saveCurrentAsPreset() {
+  if (selectedItems.length === 0) return;
+
+  const label = prompt("Enter a name for this preset:");
+  if (!label) return;
+
+  const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+  const id = `custom-${Date.now()}`;
+  const itemIds = selectedItems.map((item) => item.id);
+
+  customs.push({ id, label, itemIds });
+  localStorage.setItem("timeScale_custom_presets", JSON.stringify(customs));
+
+  renderPresets();
+}
+
+function deletePreset(id) {
+  if (id.startsWith("custom-")) {
+    const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+    const filtered = customs.filter((p) => p.id !== id);
+    localStorage.setItem("timeScale_custom_presets", JSON.stringify(filtered));
+  } else {
+    const hidden = JSON.parse(localStorage.getItem("timeScale_hidden_presets") || "[]");
+    if (!hidden.includes(id)) {
+      hidden.push(id);
+      localStorage.setItem("timeScale_hidden_presets", JSON.stringify(hidden));
+    }
+  }
+
+  renderPresets();
+}
+
+function resetPresets() {
+  localStorage.removeItem("timeScale_custom_presets");
+  localStorage.removeItem("timeScale_hidden_presets");
+  renderPresets();
+}
+
 function markSelectionChanged() {
   viewState.selectionKey = "";
   if (selectedDetailId && !selectedItems.some((item) => item.id === selectedDetailId)) {
     selectedDetailId = null;
   }
+  renderPresets();
 }
 
 function renderChips() {
@@ -253,10 +339,23 @@ function renderDetailPanel() {
 }
 
 function renderEmptyPresetPicker() {
+  const hidden = JSON.parse(localStorage.getItem("timeScale_hidden_presets") || "[]");
+  const customs = JSON.parse(localStorage.getItem("timeScale_custom_presets") || "[]");
+  const visibleBuiltins = PRESETS.filter((p) => !hidden.includes(p.id));
+
+  const builtinsHtml = visibleBuiltins
+    .map((preset) => `<button class="preset-btn" type="button" data-preset-id="${preset.id}">${escapeHtml(preset.label)}</button>`)
+    .join("");
+
+  const customsHtml = customs
+    .map((preset) => `<button class="preset-btn" type="button" data-preset-id="${preset.id}">${escapeHtml(preset.label)}</button>`)
+    .join("");
+
   return `
     <div class="empty-presets" aria-label="Default timelines">
-      <span>Pick defaults</span>
-      ${PRESETS.map((preset) => `<button class="preset-btn" type="button" data-preset-id="${preset.id}">${escapeHtml(preset.label)}</button>`).join("")}
+      <span>Presets</span>
+      ${builtinsHtml}
+      ${customsHtml}
     </div>
   `;
 }
@@ -695,7 +794,27 @@ function bindEvents() {
 
   elements.presetControls.addEventListener("click", (event) => {
     const presetButton = event.target.closest("[data-preset-id]");
-    if (presetButton) loadPreset(presetButton.dataset.presetId);
+    if (presetButton) {
+      loadPreset(presetButton.dataset.presetId);
+      return;
+    }
+
+    const deleteButton = event.target.closest("[data-delete-id]");
+    if (deleteButton) {
+      deletePreset(deleteButton.dataset.deleteId);
+      return;
+    }
+
+    const actionButton = event.target.closest("[data-action]");
+    if (actionButton) {
+      const action = actionButton.dataset.action;
+      if (action === "save-preset") saveCurrentAsPreset();
+      else if (action === "reset-presets") {
+        if (confirm("Reset all presets to defaults? This will delete your custom presets.")) {
+          resetPresets();
+        }
+      }
+    }
   });
 
   elements.timelineContainer.addEventListener("click", (event) => {
