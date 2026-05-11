@@ -292,6 +292,48 @@ input[type="text"]:focus {
   color: var(--violet);
 }
 
+.preset-item {
+  display: flex;
+  align-items: center;
+}
+
+.preset-delete {
+  background: none;
+  border: none;
+  color: var(--quiet);
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0 0.15rem;
+  margin-left: -0.2rem;
+  opacity: 0.4;
+  line-height: 1;
+  transition: all 0.1s;
+}
+
+.preset-delete:hover {
+  opacity: 1;
+  color: var(--accent-hot);
+  transform: scale(1.2);
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--cyan);
+  cursor: pointer;
+  font-size: 0.61rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.4rem;
+  opacity: 0.8;
+  transition: opacity 0.1s;
+}
+
+.btn-text:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
 .timeline-container {
   position: relative;
   flex: 1;
