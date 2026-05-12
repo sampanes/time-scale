@@ -94,12 +94,21 @@ h1 {
   text-transform: uppercase;
 }
 
+.search-count {
+  display: none;
+  color: var(--quiet);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .app-shell.chrome-collapsed .topbar {
   grid-template-columns: 1fr;
   padding: 0.62rem 0.9rem;
 }
 
 .app-shell.chrome-collapsed .subtitle,
+.app-shell.chrome-collapsed .search-count,
 .app-shell.chrome-collapsed .controls {
   display: none;
 }
@@ -895,6 +904,10 @@ input[type="text"]:focus {
 }
 
 @media (min-width: 761px) {
+  .search-count {
+    display: block;
+  }
+
   .wiki-panel {
     display: block;
   }

@@ -39,3 +39,17 @@ test("renamed extinction entries remain searchable and render as spans", () => {
     assert.doesNotMatch(result.name, /extinction/i);
   }
 });
+
+test("searchTimelineItems finds curated people by aliases and ascii spellings", () => {
+  for (const [query, id] of [
+    ["buddha", "person-siddhartha-gautama"],
+    ["schrodinger", "person-erwin-schrodinger"],
+    ["garcia marquez", "person-gabriel-garcia-marquez"],
+  ]) {
+    const result = searchTimelineItems(TIMELINE_ITEMS, query)[0];
+
+    assert.equal(result.id, id);
+    assert.equal(result.type, "person");
+    assert.notEqual(result.start_ma, result.end_ma);
+  }
+});
