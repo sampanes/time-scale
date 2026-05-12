@@ -53,3 +53,19 @@ test("searchTimelineItems finds curated people by aliases and ascii spellings", 
     assert.notEqual(result.start_ma, result.end_ma);
   }
 });
+
+test("searchTimelineItems finds great works by aliases", () => {
+  for (const [query, id] of [
+    ["gilgamesh", "work-epic-of-gilgamesh"],
+    ["colloseum", "work-colosseum"],
+    ["statue of david", "work-david"],
+    ["mona lisa", "work-mona-lisa"],
+    ["iphone", "work-iphone"],
+  ]) {
+    const result = searchTimelineItems(TIMELINE_ITEMS, query)[0];
+
+    assert.equal(result.id, id);
+    assert.equal(result.type, "work");
+    assert.notEqual(result.start_ma, result.end_ma);
+  }
+});
