@@ -25,3 +25,17 @@ test("searchTimelineItems includes scratchpad geology and future additions", () 
   assert.equal(searchTimelineItems(TIMELINE_ITEMS, "milkomeda")[0].id, "milkomeda-collision");
   assert.equal(searchTimelineItems(TIMELINE_ITEMS, "betelgeuse")[0].id, "betelgeuse-supernova");
 });
+
+test("renamed extinction entries remain searchable and render as spans", () => {
+  for (const [query, id] of [
+    ["wooly mammoth extinction", "woolly-mammoth"],
+    ["dodo extinction", "dodo-extinction"],
+    ["passenger pigeon extinction", "passenger-pigeon-extinction"],
+  ]) {
+    const result = searchTimelineItems(TIMELINE_ITEMS, query)[0];
+
+    assert.equal(result.id, id);
+    assert.notEqual(result.start_ma, result.end_ma);
+    assert.doesNotMatch(result.name, /extinction/i);
+  }
+});
