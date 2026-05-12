@@ -44,6 +44,7 @@ const wikiSummaryCache = new Map();
 const elements = {
   appShell: document.querySelector(".app-shell"),
   brandToggle: document.getElementById("brandToggle"),
+  searchCount: document.getElementById("searchCount"),
   searchInput: document.getElementById("searchInput"),
   autocompleteList: document.getElementById("acList"),
   chips: document.getElementById("chips"),
@@ -64,6 +65,12 @@ function getSelectionKey() {
 
 function search(query) {
   return searchTimelineItems(TIMELINE_ITEMS, query);
+}
+
+function renderSearchCount() {
+  if (!elements.searchCount) return;
+
+  elements.searchCount.textContent = `${TIMELINE_ITEMS.length.toLocaleString()} searchable events`;
 }
 
 function escapeHtml(value) {
@@ -1163,6 +1170,7 @@ function endPointerInteraction(event) {
 
 readInitialUrlState();
 applyChromeState();
+renderSearchCount();
 renderPresets();
 bindEvents();
 renderChips();

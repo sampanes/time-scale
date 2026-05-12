@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { TIMELINE_ITEMS } from "../src/data/timeline-data.js";
+
 class FakeClassList {
   constructor() {
     this.classes = new Set();
@@ -31,6 +33,7 @@ class FakeElement {
   constructor(id) {
     this.id = id;
     this.innerHTML = "";
+    this.textContent = "";
     this.value = "";
     this.listeners = {};
     this.classList = new FakeClassList();
@@ -66,7 +69,7 @@ class FakeElement {
 
 function createFakeDom() {
   const elements = Object.fromEntries(
-    ["searchInput", "acList", "chips", "timelineContainer", "tooltip", "presetControls", "brandToggle"].map((id) => [
+    ["searchInput", "acList", "chips", "timelineContainer", "tooltip", "presetControls", "brandToggle", "searchCount"].map((id) => [
       id,
       new FakeElement(id),
     ]),
@@ -111,6 +114,7 @@ test("app boot wires default presets, autocomplete, and add", async () => {
 
   await import("../src/app.js");
 
+  assert.equal(elements.searchCount.textContent, `${TIMELINE_ITEMS.length.toLocaleString()} searchable events`);
   assert.match(elements.presetControls.innerHTML, /Presets/);
   assert.match(elements.timelineContainer.innerHTML, /empty-presets/);
 
