@@ -39,6 +39,7 @@ const STORAGE_KEYS = {
   customPresets: "timeScale_custom_presets",
 };
 const volatileStorage = new Map();
+const wikiSummaryCache = new Map();
 
 const elements = {
   appShell: document.querySelector(".app-shell"),
@@ -72,6 +73,103 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
+}
+
+function isDesktopDetailViewport() {
+  return window.matchMedia("(min-width: 761px)").matches;
+}
+
+function getWikiTitle(item) {
+  return item.wikiTitle ?? item.name.replace(/\s*\([^)]*\)\s*/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function ensureWikiSummary(item) {
+  if (!isDesktopDetailViewport() || typeof fetch !== "function") return null;
+
+  const title = getWikiTitle(item);
+  if (!title) return null;
+  if (wikiSummaryCache.has(title)) return wikiSummaryCache.get(title);
+
+  const pending = { status: "loading" };
+  wikiSummaryCache.set(title, pending);
+
+  fetchWikiSummary(title)
+    .then((summary) => {
+      wikiSummaryCache.set(title, { status: "ready", summary });
+    })
+    .catch(() => {
+      wikiSummaryCache.set(title, { status: "error" });
+    })
+    .finally(() => {
+      if (selectedDetailId === item.id) renderTimeline();
+    });
+
+  return pending;
+}
+
+async function fetchWikiSummary(title) {
+  const encodedTitle = encodeURIComponent(title.replace(/\s+/g, "_"));
+  const response = await fetch(`https://en.wikipedia.org/api/rest_v1/page/summary/${encodedTitle}`, {
+    headers: {
+      Accept: "application/json",
+      "Api-User-Agent": "time-scale/0.1 (https://github.com/sampanes/time-scale)",
+    },
+  });
+
+  if (!response.ok) throw new Error(`Wikipedia summary request failed: ${response.status}`);
+
+  const summary = await response.json();
+  if (!summary.extract || summary.type === "https://mediawiki.org/wiki/HyperSwitch/errors/not_found") {
+    throw new Error("Wikipedia summary not found");
+  }
+
+  return summary;
+}
+
+function renderWikiSummary(item) {
+  const record = ensureWikiSummary(item);
+  if (!record) return "";
+
+  if (record.status === "loading") {
+    return `
+      <div class="wiki-panel">
+        <div class="wiki-eyebrow">Wikipedia</div>
+        <div class="wiki-empty">Loading article summary...</div>
+      </div>
+    `;
+  }
+
+  if (record.status === "error") {
+    return `
+      <div class="wiki-panel">
+        <div class="wiki-eyebrow">Wikipedia</div>
+        <div class="wiki-empty">No matching article found.</div>
+      </div>
+    `;
+  }
+
+  const { summary } = record;
+  const pageUrl = summary.content_urls?.desktop?.page ?? summary.content_urls?.mobile?.page ?? "";
+  const thumbnailUrl = summary.thumbnail?.source ?? "";
+
+  return `
+    <div class="wiki-panel">
+      <div class="wiki-eyebrow">Wikipedia</div>
+      <div class="wiki-body">
+        ${
+          thumbnailUrl
+            ? `<img class="wiki-thumb" src="${escapeHtml(thumbnailUrl)}" alt="${escapeHtml(summary.title ?? item.name)}">`
+            : ""
+        }
+        <p>${escapeHtml(summary.extract)}</p>
+      </div>
+      ${
+        pageUrl
+          ? `<a class="wiki-link" href="${escapeHtml(pageUrl)}" target="_blank" rel="noopener noreferrer">Open article</a>`
+          : ""
+      }
+    </div>
+  `;
 }
 
 function readStorageValue(key) {
@@ -401,6 +499,7 @@ function renderDetailPanel() {
         <div>Aliases</div>
         <span>${escapeHtml(aliases)}</span>
       </div>
+      ${renderWikiSummary(item)}
     </aside>
   `;
 }

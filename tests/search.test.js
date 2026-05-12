@@ -19,3 +19,9 @@ test("searchTimelineItems finds aliases and limits results", () => {
   assert.equal(results[0].id, "mass-extinction-kpg");
   assert.ok(results.length <= 3);
 });
+
+test("searchTimelineItems includes scratchpad geology and future additions", () => {
+  assert.equal(searchTimelineItems(TIMELINE_ITEMS, "azolla")[0].id, "azolla-event");
+  assert.equal(searchTimelineItems(TIMELINE_ITEMS, "milkomeda")[0].id, "milkomeda-collision");
+  assert.equal(searchTimelineItems(TIMELINE_ITEMS, "betelgeuse")[0].id, "betelgeuse-supernova");
+});
