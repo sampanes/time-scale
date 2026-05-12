@@ -702,7 +702,7 @@ function renderTick(tick, offsetY, viewportTop, viewportBottom) {
 }
 
 function renderVerticalSegment(segment, offsetY, viewportTop, viewportBottom) {
-  const colorStyle = `--item-color:${segment.color};`;
+  const colorStyle = `--item-color:${segment.color};--segment-fill:${segment.fillMixPct ?? 30}%;--segment-edge:${segment.edgeMixPct ?? 62}%;--segment-glow:${segment.glowMixPct ?? 12}%;`;
 
   if (segment.isPoint) {
     const y = segment.y + offsetY;

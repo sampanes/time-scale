@@ -50,6 +50,33 @@ test("buildVerticalTimelineViewModel renders point events as lines", () => {
   assert.equal(model.segments[0].color, "#abcdef");
 });
 
+test("buildVerticalTimelineViewModel increases segment mix as overlaps rise", () => {
+  const model = buildVerticalTimelineViewModel(
+    [
+      { id: "wide", name: "Wide", type: "event", start_ma: 10, end_ma: 0 },
+      { id: "middle", name: "Middle", type: "event", start_ma: 8, end_ma: 2 },
+      { id: "narrow", name: "Narrow", type: "event", start_ma: 7, end_ma: 6 },
+      { id: "separate", name: "Separate", type: "event", start_ma: -1, end_ma: -2 },
+    ],
+    {
+      pxPerMa: 10,
+      viewportHeight: 400,
+      rangePaddingRatio: 0,
+      typeColors: { event: ["#123456"] },
+    },
+  );
+
+  const byId = Object.fromEntries(model.segments.map((segment) => [segment.id, segment]));
+
+  assert.equal(byId.wide.overlapCount, 3);
+  assert.equal(byId.middle.overlapCount, 3);
+  assert.equal(byId.narrow.overlapCount, 3);
+  assert.equal(byId.separate.overlapCount, 1);
+  assert.ok(byId.wide.fillMixPct > byId.separate.fillMixPct);
+  assert.ok(byId.wide.edgeMixPct > byId.separate.edgeMixPct);
+  assert.ok(byId.wide.glowMixPct > byId.separate.glowMixPct);
+});
+
 test("buildVerticalTimelineViewModel survives the Big Bang -> Heat Death range without hanging", () => {
   const cosmicSelection = [
     { id: "big-bang", name: "Big Bang", type: "event", start_ma: 13800, end_ma: 13800 },
