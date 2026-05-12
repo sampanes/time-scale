@@ -696,6 +696,56 @@ input[type="text"]:focus {
   text-align: left;
 }
 
+.wiki-panel {
+  display: none;
+  margin-top: 0.8rem;
+  border-top: 1px solid rgba(89, 97, 107, 0.5);
+  padding-top: 0.75rem;
+}
+
+.wiki-eyebrow {
+  margin-bottom: 0.45rem;
+  color: var(--quiet);
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.wiki-body {
+  display: flow-root;
+  color: var(--text);
+  line-height: 1.45;
+}
+
+.wiki-body p,
+.wiki-empty {
+  color: var(--muted);
+}
+
+.wiki-thumb {
+  float: left;
+  width: 5.4rem;
+  height: 5.4rem;
+  margin: 0.15rem 0.7rem 0.35rem 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.wiki-link {
+  display: inline-block;
+  margin-top: 0.55rem;
+  color: var(--cyan);
+  font-size: 0.61rem;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.wiki-link:hover {
+  text-decoration: underline;
+}
+
 .empty {
   display: grid;
   height: 100%;
@@ -841,5 +891,11 @@ input[type="text"]:focus {
   .event-segment-label,
   .event-point-label {
     font-size: 0.62rem;
+  }
+}
+
+@media (min-width: 761px) {
+  .wiki-panel {
+    display: block;
   }
 }

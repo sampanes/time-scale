@@ -6,6 +6,7 @@ export const TIMELINE_ITEMS = [
   { id: "first-stars", name: "First Stars", type: "event", start_ma: 13600, end_ma: 13600, aliases: ["first stars", "population iii stars"] },
   { id: "milky-way-forms", name: "Milky Way Forms", type: "event", start_ma: 13200, end_ma: 13200, aliases: ["milky way", "galaxy forms"] },
   { id: "solar-system", name: "Solar System Forms", type: "event", start_ma: 4600, end_ma: 4600, aliases: ["solar system", "sun forms", "solar nebula"] },
+  { id: "earth-formation", name: "Earth Forms", type: "event", start_ma: 4540, end_ma: 4540, aliases: ["earth formation", "formation of earth", "earth's formation", "earth forms"], wikiTitle: "Earth" },
   { id: "moon-forms", name: "The Moon Forms", type: "event", start_ma: 4510, end_ma: 4510, aliases: ["moon", "the moon", "giant impact", "theia"] },
   { id: "earth-oceans", name: "Earth's Oceans Form", type: "event", start_ma: 4400, end_ma: 4400, aliases: ["oceans", "water on earth"] },
 
@@ -51,11 +52,20 @@ export const TIMELINE_ITEMS = [
   { id: "pleistocene", name: "Pleistocene", type: "epoch", start_ma: 2.58, end_ma: 0.0117, aliases: ["pleistocene", "ice age"] },
   { id: "holocene", name: "Holocene", type: "epoch", start_ma: 0.0117, end_ma: 0, aliases: ["holocene", "modern epoch"] },
 
+  // Geology and climate events
+  { id: "pangea-forms", name: "Formation of Pangea", type: "event", start_ma: 335, end_ma: 335, aliases: ["pangea forms", "formation of pangea", "supercontinent pangea"], wikiTitle: "Pangaea" },
+  { id: "pangea-breakup", name: "Breakup of Pangea", type: "event", start_ma: 175, end_ma: 175, aliases: ["pangea breakup", "breakup of pangea", "atlantic opens"], wikiTitle: "Pangaea" },
+  { id: "azolla-event", name: "Azolla Event", type: "event", start_ma: 49, end_ma: 49, aliases: ["azolla", "azolla event", "arctic fern", "eocene cooling"], wikiTitle: "Azolla event" },
+  { id: "iceland-forms", name: "Iceland Emerges", type: "event", start_ma: 18, end_ma: 18, aliases: ["iceland forms", "formation of iceland", "iceland emerges", "mid atlantic ridge"], wikiTitle: "Geology of Iceland" },
+  { id: "messinian-salinity-crisis", name: "Messinian Salinity Crisis", type: "event", start_ma: 5.96, end_ma: 5.33, aliases: ["messinian", "salinity crisis", "mediterranean dried up", "zanclean flood"], wikiTitle: "Messinian salinity crisis" },
+  { id: "hawaiian-big-island-forms", name: "Hawaiian Big Island Forms", type: "event", start_ma: 0.4, end_ma: 0.4, aliases: ["hawaii big island", "big island forms", "hawaiian island forms", "hawaii island"], wikiTitle: "Hawaii (island)" },
+
   // Life events
   { id: "first-life", name: "First Life", type: "event", start_ma: 3800, end_ma: 3800, aliases: ["first life", "earliest life", "abiogenesis", "prokaryotes"] },
   { id: "first-eukaryotes", name: "First Eukaryotes", type: "event", start_ma: 2100, end_ma: 2100, aliases: ["eukaryotes", "first eukaryotes", "complex cells"] },
-  { id: "great-oxidation", name: "Great Oxidation Event", type: "event", start_ma: 2400, end_ma: 2400, aliases: ["great oxidation", "oxygen crisis", "oxygen catastrophe"] },
+  { id: "great-oxidation", name: "Great Oxidation Event", type: "event", start_ma: 2400, end_ma: 2400, aliases: ["great oxidation", "oxygen crisis", "oxygen catastrophe"], wikiTitle: "Great Oxidation Event" },
   { id: "first-multicellular", name: "First Multicellular Life", type: "event", start_ma: 1200, end_ma: 1200, aliases: ["multicellular", "first multicellular"] },
+  { id: "first-sexual-reproduction", name: "First Sexual Reproduction", type: "event", start_ma: 1200, end_ma: 1200, aliases: ["sexual reproduction", "first sex", "bangiomorpha", "genetic diversity"], wikiTitle: "Bangiomorpha pubescens" },
   { id: "cambrian-explosion", name: "Cambrian Explosion", type: "event", start_ma: 538.8, end_ma: 515, aliases: ["cambrian explosion", "animal diversification"] },
   { id: "first-fish", name: "First Fish", type: "event", start_ma: 530, end_ma: 530, aliases: ["first fish", "fish", "vertebrates", "jawless fish"] },
   { id: "first-sharks", name: "First Sharks", type: "event", start_ma: 450, end_ma: 450, aliases: ["sharks", "first sharks", "chondrichthyes"] },
@@ -67,6 +77,8 @@ export const TIMELINE_ITEMS = [
   { id: "permian-extinction", name: "Permian Mass Extinction", type: "event", start_ma: 251.9, end_ma: 251.9, aliases: ["permian extinction", "great dying", "p-t extinction", "end permian"] },
   { id: "first-dinosaurs", name: "First Dinosaurs", type: "event", start_ma: 245, end_ma: 245, aliases: ["dinosaurs", "first dinosaurs"] },
   { id: "first-mammals", name: "First Mammals", type: "event", start_ma: 225, end_ma: 225, aliases: ["mammals", "first mammals"] },
+  { id: "monotreme-divergence", name: "Monotreme Lineage Splits", type: "event", start_ma: 220, end_ma: 220, aliases: ["monotreme", "monotremes", "platypus", "echidna", "egg laying mammals"], wikiTitle: "Monotreme" },
+  { id: "marsupial-placental-split", name: "Marsupial-Placental Split", type: "event", start_ma: 160, end_ma: 160, aliases: ["marsupial placental split", "marsupials", "placentals", "therian mammals", "eutheria metatheria"], wikiTitle: "Theria" },
   { id: "stegosaurus", name: "Stegosaurus", type: "event", start_ma: 155, end_ma: 150, aliases: ["stegosaurus", "plated dinosaur"] },
   { id: "first-birds", name: "First Birds", type: "event", start_ma: 150, end_ma: 150, aliases: ["birds", "first birds", "archaeopteryx"] },
   { id: "first-flowers", name: "First Flowering Plants", type: "event", start_ma: 130, end_ma: 130, aliases: ["flowers", "flowering plants", "angiosperms"] },
@@ -169,6 +181,17 @@ export const TIMELINE_ITEMS = [
   { id: "now", name: "Now", type: "event", start_ma: 0, end_ma: 0, aliases: ["now", "today", "present", "current"] },
 
   // Future
+  { id: "betelgeuse-supernova", name: "Betelgeuse Supernova", type: "future", start_ma: -0.1, end_ma: -0.1, aliases: ["betelgeuse", "betelgeuse supernova", "orion supernova", "red supergiant"], wikiTitle: "Betelgeuse" },
+  { id: "eta-carinae-supernova", name: "Eta Carinae Supernova", type: "future", start_ma: -0.1, end_ma: -0.5, aliases: ["eta carinae", "eta carinae supernova", "carina supernova", "great eruption"], wikiTitle: "Eta Carinae" },
+  { id: "antares-supernova", name: "Antares Supernova", type: "future", start_ma: -1, end_ma: -1, aliases: ["antares", "antares supernova", "scorpius supernova"], wikiTitle: "Antares" },
+  { id: "spica-supernova", name: "Spica Supernova", type: "future", start_ma: -5, end_ma: -5, aliases: ["spica", "spica supernova", "virgo supernova"], wikiTitle: "Spica" },
+  { id: "rigel-supernova", name: "Rigel Supernova", type: "future", start_ma: -10, end_ma: -20, aliases: ["rigel", "rigel supernova", "orion blue supergiant"], wikiTitle: "Rigel" },
+  { id: "east-african-rift-ocean", name: "East African Rift Ocean Forms", type: "future", start_ma: -10, end_ma: -10, aliases: ["east african rift", "new ocean africa", "africa splits", "rift ocean"], wikiTitle: "East African Rift" },
+  { id: "mediterranean-closure", name: "Mediterranean Basin Closes", type: "future", start_ma: -50, end_ma: -50, aliases: ["mediterranean closure", "mediterranean closes", "africa europe collision", "future mediterranean"] },
+  { id: "hawaiian-big-island-subducts", name: "Hawaiian Big Island Subducts", type: "future", start_ma: -80, end_ma: -80, aliases: ["big island subducts", "hawaii subducts", "hawaiian emperor chain", "aleutian trench"], wikiTitle: "Hawaiian-Emperor seamount chain" },
+  { id: "next-supercontinent", name: "Next Supercontinent Forms", type: "future", start_ma: -250, end_ma: -250, aliases: ["next supercontinent", "pangea ultima", "pangea proxima", "amasia", "future supercontinent"], wikiTitle: "Pangaea Proxima" },
+  { id: "earth-oceans-evaporate", name: "Earth's Oceans Evaporate", type: "future", start_ma: -1000, end_ma: -1000, aliases: ["end of oceans", "oceans evaporate", "future of earth", "sun luminosity"], wikiTitle: "Future of Earth" },
+  { id: "milkomeda-collision", name: "Milky Way-Andromeda Collision", type: "future", start_ma: -4500, end_ma: -4500, aliases: ["milkomeda", "andromeda collision", "milky way andromeda", "galaxy collision"], wikiTitle: "Andromeda-Milky Way collision" },
   { id: "sun-expands", name: "Sun Leaves Main Sequence", type: "future", start_ma: -5000, end_ma: -5000, aliases: ["sun expands", "sun red giant", "main sequence", "sun dies"] },
   { id: "earth-sterilized", name: "Earth Surface Sterilized", type: "future", start_ma: -5400, end_ma: -5400, aliases: ["earth sterilized", "life ends", "earth consumed", "sun consumes earth"] },
   { id: "sun-white-dwarf", name: "Sun Becomes White Dwarf", type: "future", start_ma: -7500, end_ma: -7500, aliases: ["white dwarf", "sun white dwarf"] },
