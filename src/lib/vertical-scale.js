@@ -206,6 +206,8 @@ export function formatTickLabel(ma, options = {}) {
     return formatCalendarYear(ma, referenceYear);
   }
 
+  if (ma === 0) return "";
+
   return formatMa(ma);
 }
 

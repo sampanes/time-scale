@@ -668,7 +668,7 @@ function renderTimeline() {
   const segmentsHtml = viewModel.segments
     .map((segment) => renderVerticalSegment(segment, renderOffsetY, viewportTop, viewportBottom))
     .join("");
-  const nowHtml = renderNowLine(viewModel.nowY, renderOffsetY, viewportTop, viewportBottom);
+  const nowHtml = renderNowLine(viewModel.nowY, renderOffsetY, viewportTop, viewportBottom, viewModel.nowActive);
 
   elements.timelineContainer.innerHTML = `
     ${renderTimelineToolbar(true)}
@@ -736,13 +736,14 @@ function renderVerticalSegment(segment, offsetY, viewportTop, viewportBottom) {
   `;
 }
 
-function renderNowLine(nowY, offsetY, viewportTop, viewportBottom) {
+function renderNowLine(nowY, offsetY, viewportTop, viewportBottom, active = false) {
   if (nowY === null) return "";
 
   const y = nowY + offsetY;
   if (!Number.isFinite(y) || y < viewportTop || y > viewportBottom) return "";
 
-  return `<div class="now-line" style="top:${y}px"><span>Now</span></div>`;
+  const activeClass = active ? " active" : "";
+  return `<div class="now-line${activeClass}" style="top:${y}px"><div class="now-line-bar"></div><span>Now</span></div>`;
 }
 
 function getTimelineViewportHeight() {
