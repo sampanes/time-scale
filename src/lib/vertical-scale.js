@@ -17,7 +17,7 @@ const ONE_KYA_MA = 0.001;
 const MAX_TICKS_PER_LEVEL = 2000;
 
 export const ZOOM_BOUNDS = Object.freeze({
-  minPxPerMa: 1e-34,
+  minPxPerMa: 1e-110,
   maxPxPerMa: 2_000_000,
 });
 
