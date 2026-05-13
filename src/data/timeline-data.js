@@ -2,7 +2,7 @@
 // Positive values are in the past, zero is now, and negative values are future events.
 export const TIMELINE_ITEMS = [
   // Cosmological
-  { id: "big-bang", name: "Big Bang", type: "event", start_ma: 13800, end_ma: 13800, aliases: ["big bang", "universe begins", "origin"] },
+  { id: "big-bang", name: "Big Bang", type: "event", start_ma: 13800, end_ma: 13800, aliases: ["big bang", "universe begins", "origin"], noPadOlder: true },
   { id: "first-stars", name: "First Stars", type: "event", start_ma: 13600, end_ma: 13600, aliases: ["first stars", "population iii stars"] },
   { id: "milky-way-forms", name: "Milky Way Forms", type: "event", start_ma: 13200, end_ma: 13200, aliases: ["milky way", "galaxy forms"] },
   { id: "solar-system", name: "Solar System Forms", type: "event", start_ma: 4600, end_ma: 4600, aliases: ["solar system", "sun forms", "solar nebula"] },
@@ -400,7 +400,7 @@ export const TIMELINE_ITEMS = [
   { id: "earth-sterilized", name: "Earth Surface Sterilized", type: "future", start_ma: -5400, end_ma: -5400, aliases: ["earth sterilized", "life ends", "earth consumed", "sun consumes earth"] },
   { id: "sun-white-dwarf", name: "Sun Becomes White Dwarf", type: "future", start_ma: -7500, end_ma: -7500, aliases: ["white dwarf", "sun white dwarf"] },
   { id: "last-stars", name: "Last Stars Burn Out", type: "future", start_ma: -100000000, end_ma: -100000000, aliases: ["last stars", "stellar era ends", "no more stars"] },
-  { id: "heat-death", name: "Heat Death of Universe", type: "future", start_ma: -1e32, end_ma: -1e32, aliases: ["heat death", "end of universe", "maximum entropy", "big freeze"] },
+  { id: "heat-death", name: "Heat Death of Universe", type: "future", start_ma: -1e32, end_ma: -1e32, aliases: ["heat death", "end of universe", "maximum entropy", "big freeze"], noPadNewer: true },
 ];
 
 export const TYPE_COLORS = {

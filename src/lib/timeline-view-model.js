@@ -124,10 +124,24 @@ export function getVerticalTimelineRange(items, options = {}) {
 
   let minMa = Infinity;
   let maxMa = -Infinity;
+  let flushOlder = false;
+  let flushNewer = false;
 
   for (const item of items) {
-    minMa = Math.min(minMa, item.start_ma, item.end_ma);
-    maxMa = Math.max(maxMa, item.start_ma, item.end_ma);
+    const itemMin = Math.min(item.start_ma, item.end_ma);
+    const itemMax = Math.max(item.start_ma, item.end_ma);
+    if (itemMax > maxMa) {
+      maxMa = itemMax;
+      flushOlder = Boolean(item.noPadOlder);
+    } else if (itemMax === maxMa && item.noPadOlder) {
+      flushOlder = true;
+    }
+    if (itemMin < minMa) {
+      minMa = itemMin;
+      flushNewer = Boolean(item.noPadNewer);
+    } else if (itemMin === minMa && item.noPadNewer) {
+      flushNewer = true;
+    }
   }
 
   const rawSpan = maxMa - minMa;
@@ -141,7 +155,7 @@ export function getVerticalTimelineRange(items, options = {}) {
     minMa,
     maxMa,
     span: rawSpan,
-    viewMin: paddedMinMa - pad,
-    viewMax: paddedMaxMa + pad,
+    viewMin: flushNewer ? paddedMinMa : paddedMinMa - pad,
+    viewMax: flushOlder ? paddedMaxMa : paddedMaxMa + pad,
   };
 }
