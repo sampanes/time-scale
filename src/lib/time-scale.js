@@ -8,7 +8,7 @@ export function formatMa(ma) {
     return `+${abs.toFixed(1)} Ma future`;
   }
 
-  if (ma < 0.001) return `${(ma * 1000000).toFixed(0)} yrs ago`;
+  if (ma < 0.01) return `${Math.round(ma * 1_000_000).toLocaleString("en-US")} yrs ago`;
   if (ma < 1) return `${(ma * 1000).toFixed(0)} kya`;
   if (ma >= 1e9) return `${ma.toExponential(2)} Ma ago`;
   if (ma >= 1000) return `${(ma / 1000).toFixed(2)} Ga ago`;

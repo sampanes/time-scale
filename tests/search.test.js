@@ -45,6 +45,7 @@ test("searchTimelineItems finds curated people by aliases and ascii spellings", 
     ["buddha", "person-siddhartha-gautama"],
     ["schrodinger", "person-erwin-schrodinger"],
     ["garcia marquez", "person-gabriel-garcia-marquez"],
+    ["sultan of swat", "person-babe-ruth"],
   ]) {
     const result = searchTimelineItems(TIMELINE_ITEMS, query)[0];
 

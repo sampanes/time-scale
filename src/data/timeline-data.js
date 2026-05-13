@@ -215,6 +215,7 @@ export const TIMELINE_ITEMS = [
   { id: "person-erwin-schrodinger", name: "Erwin Schrödinger", type: "person", start_ma: 0.000139, end_ma: 0.000065, aliases: ["erwin schrödinger", "erwin schrodinger", "schrodinger", "schroedinger"] },
   { id: "person-adolf-hitler", name: "Adolf Hitler", type: "person", start_ma: 0.000137, end_ma: 0.000081, aliases: ["adolf hitler", "hitler"] },
   { id: "person-mao-zedong", name: "Mao Zedong", type: "person", start_ma: 0.000133, end_ma: 0.00005, aliases: ["mao zedong", "zedong", "mao"] },
+  { id: "person-babe-ruth", name: "Babe Ruth", type: "person", start_ma: 0.000131, end_ma: 0.000078, aliases: ["babe ruth", "ruth", "george herman ruth", "sultan of swat"] },
   { id: "person-amelia-earhart", name: "Amelia Earhart", type: "person", start_ma: 0.000129, end_ma: 0.000089, aliases: ["amelia earhart", "earhart"] },
   { id: "person-ernest-hemingway", name: "Ernest Hemingway", type: "person", start_ma: 0.000127, end_ma: 0.000065, aliases: ["ernest hemingway", "hemingway"] },
   { id: "person-john-steinbeck", name: "John Steinbeck", type: "person", start_ma: 0.000124, end_ma: 0.000058, aliases: ["john steinbeck", "steinbeck"] },
