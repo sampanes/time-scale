@@ -84,12 +84,12 @@ test("buildVerticalTimelineViewModel survives the Big Bang -> Heat Death range w
     { id: "first-humans", name: "Homo Sapiens", type: "event", start_ma: 0.3, end_ma: 0.3 },
     { id: "now", name: "Now", type: "event", start_ma: 0, end_ma: 0 },
     { id: "sun-expands", name: "Sun Leaves Main Sequence", type: "future", start_ma: -5000, end_ma: -5000 },
-    { id: "heat-death", name: "Heat Death", type: "future", start_ma: -1e32, end_ma: -1e32 },
+    { id: "heat-death", name: "Heat Death", type: "future", start_ma: -1e103, end_ma: -1e104 },
   ];
 
   const start = Date.now();
   const model = buildVerticalTimelineViewModel(cosmicSelection, {
-    pxPerMa: 7e-30,
+    pxPerMa: 7e-102,
     viewportHeight: 800,
     rangePaddingRatio: 0.08,
   });

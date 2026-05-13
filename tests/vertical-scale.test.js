@@ -95,10 +95,10 @@ test("makeVisibleTicks terminates quickly when ma magnitude dwarfs the tick inte
 });
 
 test("makeVisibleTicks handles a heat-death-scale span without producing absurd tick counts", () => {
-  const range = { viewMin: -1.1e32, viewMax: 1.4e4, span: 1.1e32, minMa: -1e32, maxMa: 13800 };
+  const range = { viewMin: -1e104, viewMax: 1.4e4, span: 1e104, minMa: -1e104, maxMa: 13800 };
   const ticks = makeVisibleTicks({
     range,
-    pxPerMa: 1e-30,
+    pxPerMa: 7e-102,
     viewportHeight: 800,
     offsetY: 0,
   });

@@ -24,6 +24,9 @@ test("searchTimelineItems includes scratchpad geology and future additions", () 
   assert.equal(searchTimelineItems(TIMELINE_ITEMS, "azolla")[0].id, "azolla-event");
   assert.equal(searchTimelineItems(TIMELINE_ITEMS, "milkomeda")[0].id, "milkomeda-collision");
   assert.equal(searchTimelineItems(TIMELINE_ITEMS, "betelgeuse")[0].id, "betelgeuse-supernova");
+  assert.equal(searchTimelineItems(TIMELINE_ITEMS, "proton decay")[0].id, "proton-decay-era");
+  assert.equal(searchTimelineItems(TIMELINE_ITEMS, "last black hole")[0].id, "last-black-holes-evaporate");
+  assert.equal(searchTimelineItems(TIMELINE_ITEMS, "dark era")[0].id, "heat-death");
 });
 
 test("renamed extinction entries remain searchable and render as spans", () => {
