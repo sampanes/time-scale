@@ -53,11 +53,11 @@ test("getContentHeight reflects the current vertical zoom", () => {
   assert.equal(getContentHeight({ viewMax: 100, viewMin: 0 }, 3), 300);
 });
 
-test("getOffsetBounds centers short content and clamps tall content", () => {
+test("getOffsetBounds centers short content and clamps tall content with half-viewport headroom", () => {
   assert.deepEqual(getOffsetBounds(200, 500), { min: 150, max: 150 });
-  assert.deepEqual(getOffsetBounds(800, 500), { min: -300, max: 0 });
-  assert.equal(clampOffset(50, { min: -300, max: 0 }), 0);
-  assert.equal(clampOffset(-400, { min: -300, max: 0 }), -300);
+  assert.deepEqual(getOffsetBounds(800, 500), { min: -550, max: 250 });
+  assert.equal(clampOffset(300, { min: -550, max: 250 }), 250);
+  assert.equal(clampOffset(-600, { min: -550, max: 250 }), -550);
 });
 
 test("applyRubberDelta slows movement past the scroll bounds", () => {

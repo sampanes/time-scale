@@ -106,9 +106,10 @@ export function getOffsetBounds(contentHeight, viewportHeight) {
     return { min: centeredOffset, max: centeredOffset };
   }
 
+  const headroom = viewportHeight / 2;
   return {
-    min: viewportHeight - contentHeight,
-    max: 0,
+    min: viewportHeight - contentHeight - headroom,
+    max: headroom,
   };
 }
 
