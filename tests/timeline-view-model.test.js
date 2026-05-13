@@ -95,7 +95,9 @@ test("buildVerticalTimelineViewModel survives the Big Bang -> Heat Death range w
   });
 
   assert.ok(Date.now() - start < 500, "model build must terminate quickly");
-  assert.equal(model.segments.length, cosmicSelection.length);
+  assert.equal(model.segments.length, cosmicSelection.length - 1, "now item is represented by nowY, not a segment");
+  assert.equal(model.nowActive, true);
+  assert.ok(model.nowY !== null);
   assert.ok(model.ticks.length < 200, `tick set must stay small for huge spans, got ${model.ticks.length}`);
   model.segments.forEach((segment) => {
     assert.ok(Number.isFinite(segment.top) || Number.isFinite(segment.y), `segment ${segment.id} must have finite coords`);

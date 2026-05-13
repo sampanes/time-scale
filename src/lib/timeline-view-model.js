@@ -73,9 +73,11 @@ export function buildVerticalTimelineViewModel(items, options = {}) {
   if (!range) return null;
 
   const getColor = createTypeColorPicker(typeColors ?? { event: ["#888888"] });
-  const maxDurationMa = Math.max(...items.map((item) => Math.abs(item.start_ma - item.end_ma)), 0);
+  const nowActive = items.some((item) => item.id === "now");
+  const renderableItems = items.filter((item) => item.id !== "now");
+  const maxDurationMa = Math.max(...renderableItems.map((item) => Math.abs(item.start_ma - item.end_ma)), 0);
   const maxDurationScale = Math.log10(maxDurationMa + 1);
-  const segments = annotateSegmentOverlap(items.map((item) => {
+  const segments = annotateSegmentOverlap(renderableItems.map((item) => {
     const startY = maToY(item.start_ma, range, pxPerMa);
     const endY = maToY(item.end_ma, range, pxPerMa);
     const isPoint = Math.abs(item.start_ma - item.end_ma) < 1e-12;
@@ -108,6 +110,7 @@ export function buildVerticalTimelineViewModel(items, options = {}) {
     segments,
     ticks: makeVisibleTicks({ range, pxPerMa, viewportHeight, offsetY, referenceYear }),
     nowY: range.viewMin <= 0 && range.viewMax >= 0 ? maToY(0, range, pxPerMa) : null,
+    nowActive,
     selectedCount: items.length,
     labels: {
       rangeStart: formatMa(range.maxMa),
