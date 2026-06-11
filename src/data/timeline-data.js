@@ -5,10 +5,15 @@ export const TIMELINE_ITEMS = [
   { id: "big-bang", name: "Big Bang", type: "event", start_ma: 13800, end_ma: 13800, aliases: ["big bang", "universe begins", "origin"], noPadOlder: true },
   { id: "first-stars", name: "First Stars", type: "event", start_ma: 13600, end_ma: 13600, aliases: ["first stars", "population iii stars"] },
   { id: "milky-way-forms", name: "Milky Way Forms", type: "event", start_ma: 13200, end_ma: 13200, aliases: ["milky way", "galaxy forms"] },
+  { id: "cosmic-noon", name: "Cosmic Noon (Peak Star Formation)", type: "event", start_ma: 10000, end_ma: 10000, aliases: ["cosmic noon", "peak star formation", "starburst universe"] },
+  { id: "gaia-enceladus-merger", name: "Gaia-Enceladus Galaxy Merger", type: "event", start_ma: 10000, end_ma: 10000, aliases: ["gaia sausage", "gaia enceladus", "milky way merger", "galaxy merger"], wikiTitle: "Gaia-Enceladus" },
+  { id: "dark-energy-dominance", name: "Dark Energy Acceleration Begins", type: "event", start_ma: 5000, end_ma: 5000, aliases: ["dark energy", "accelerated expansion", "expansion acceleration"], wikiTitle: "Accelerating expansion of the universe" },
   { id: "solar-system", name: "Solar System Forms", type: "event", start_ma: 4600, end_ma: 4600, aliases: ["solar system", "sun forms", "solar nebula"] },
   { id: "earth-formation", name: "Earth Forms", type: "event", start_ma: 4540, end_ma: 4540, aliases: ["earth formation", "formation of earth", "earth's formation", "earth forms"], wikiTitle: "Earth" },
   { id: "moon-forms", name: "The Moon Forms", type: "event", start_ma: 4510, end_ma: 4510, aliases: ["moon", "the moon", "giant impact", "theia"] },
   { id: "earth-oceans", name: "Earth's Oceans Form", type: "event", start_ma: 4400, end_ma: 4400, aliases: ["oceans", "water on earth"] },
+  { id: "jack-hills-zircons", name: "Oldest Zircons (Jack Hills)", type: "event", start_ma: 4400, end_ma: 4400, aliases: ["jack hills", "oldest zircon", "cool early earth"], wikiTitle: "Jack Hills" },
+  { id: "late-heavy-bombardment", name: "Late Heavy Bombardment", type: "event", start_ma: 4100, end_ma: 3800, aliases: ["lhb", "heavy bombardment", "moon craters"], wikiTitle: "Late Heavy Bombardment" },
 
   // Eons
   { id: "hadean", name: "Hadean", type: "eon", start_ma: 4600, end_ma: 4031, aliases: ["hadean eon", "hadean"] },
@@ -53,6 +58,11 @@ export const TIMELINE_ITEMS = [
   { id: "holocene", name: "Holocene", type: "epoch", start_ma: 0.0117, end_ma: 0, aliases: ["holocene", "modern epoch"] },
 
   // Geology and climate events
+  { id: "columbia-supercontinent", name: "Columbia Supercontinent (Nuna)", type: "event", start_ma: 1800, end_ma: 1400, aliases: ["columbia", "nuna", "hudsonland"], wikiTitle: "Columbia (supercontinent)" },
+  { id: "boring-billion", name: "The Boring Billion", type: "event", start_ma: 1800, end_ma: 800, aliases: ["boring billion", "barren billion", "dullest time"], wikiTitle: "Boring Billion" },
+  { id: "rodinia", name: "Rodinia Supercontinent", type: "event", start_ma: 1100, end_ma: 750, aliases: ["rodinia", "rodinia supercontinent"], wikiTitle: "Rodinia" },
+  { id: "sturtian-glaciation", name: "Sturtian Snowball Earth", type: "event", start_ma: 717, end_ma: 660, aliases: ["sturtian glaciation", "sturtian snowball", "snowball earth"], wikiTitle: "Sturtian glaciation" },
+  { id: "marinoan-glaciation", name: "Marinoan Snowball Earth", type: "event", start_ma: 650, end_ma: 635, aliases: ["marinoan glaciation", "marinoan snowball", "snowball earth"], wikiTitle: "Marinoan glaciation" },
   { id: "pangea-forms", name: "Formation of Pangea", type: "event", start_ma: 335, end_ma: 299, aliases: ["pangea forms", "formation of pangea", "supercontinent pangea"], wikiTitle: "Pangaea" },
   { id: "pangea-breakup", name: "Breakup of Pangea", type: "event", start_ma: 200, end_ma: 175, aliases: ["pangea breakup", "breakup of pangea", "atlantic opens"], wikiTitle: "Pangaea" },
   { id: "azolla-event", name: "Azolla Event", type: "event", start_ma: 49.3, end_ma: 48.1, aliases: ["azolla", "azolla event", "arctic fern", "eocene cooling"], wikiTitle: "Azolla event" },
@@ -63,11 +73,15 @@ export const TIMELINE_ITEMS = [
 
   // Life events
   { id: "first-life", name: "First Life", type: "event", start_ma: 3800, end_ma: 3800, aliases: ["first life", "earliest life", "abiogenesis", "prokaryotes"] },
+  { id: "vaalbara", name: "Vaalbara Supercontinent Forms", type: "event", start_ma: 3600, end_ma: 2800, aliases: ["vaalbara", "first supercontinent", "ancient cratons"], wikiTitle: "Vaalbara" },
+  { id: "oldest-stromatolites", name: "Oldest Fossil Stromatolites", type: "event", start_ma: 3480, end_ma: 3480, aliases: ["stromatolites", "fossil stromatolites", "dresser formation"], wikiTitle: "Stromatolite" },
+  { id: "earths-magnetic-field", name: "Earth's Magnetic Field Established", type: "event", start_ma: 3450, end_ma: 3450, aliases: ["magnetic field", "magnetosphere", "paleomagnetism"], wikiTitle: "Earth's magnetic field" },
   { id: "first-eukaryotes", name: "First Eukaryotes", type: "event", start_ma: 2100, end_ma: 2100, aliases: ["eukaryotes", "first eukaryotes", "complex cells"] },
   { id: "great-oxidation", name: "Great Oxidation Event", type: "event", start_ma: 2460, end_ma: 2060, aliases: ["great oxidation", "oxygen crisis", "oxygen catastrophe"], wikiTitle: "Great Oxidation Event" },
   { id: "first-fungi", name: "First Fungi", type: "event", start_ma: 1500, end_ma: 1500, aliases: ["fungi", "first fungi", "mushrooms"] },
   { id: "first-multicellular", name: "First Multicellular Life", type: "event", start_ma: 1200, end_ma: 1200, aliases: ["multicellular", "first multicellular"] },
   { id: "first-sexual-reproduction", name: "First Sexual Reproduction", type: "event", start_ma: 1200, end_ma: 1200, aliases: ["sexual reproduction", "first sex", "bangiomorpha", "genetic diversity"], wikiTitle: "Bangiomorpha pubescens" },
+  { id: "ediacaran-biota", name: "Ediacaran Biota Flourishes", type: "event", start_ma: 575, end_ma: 538.8, aliases: ["ediacaran", "ediacara", "first animals", "soft-bodied biota"], wikiTitle: "Ediacaran biota" },
   { id: "cambrian-explosion", name: "Cambrian Explosion", type: "event", start_ma: 538.8, end_ma: 515, aliases: ["cambrian explosion", "animal diversification"] },
   { id: "first-fish", name: "First Fish", type: "event", start_ma: 530, end_ma: 530, aliases: ["first fish", "fish", "vertebrates", "jawless fish"] },
   { id: "first-sharks", name: "First Sharks", type: "event", start_ma: 450, end_ma: 450, aliases: ["sharks", "first sharks", "chondrichthyes"] },
