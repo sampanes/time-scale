@@ -432,6 +432,21 @@ export const TIMELINE_ITEMS = [
   { id: "black-hole-era", name: "Black Hole Era", type: "future", start_ma: -1e34, end_ma: -1e100, aliases: ["black hole era", "only black holes remain", "hawking radiation era"], wikiTitle: "Future of an expanding universe" },
   { id: "last-black-holes-evaporate", name: "Last Black Holes Evaporate", type: "future", start_ma: -1e100, end_ma: -1e103, aliases: ["last black hole", "black holes evaporate", "hawking radiation", "final black holes"], wikiTitle: "Hawking radiation" },
   { id: "heat-death", name: "Dark Era / Heat Death", type: "future", start_ma: -1e103, end_ma: -1e104, aliases: ["heat death", "dark era", "end of universe", "maximum entropy", "big freeze"], wikiTitle: "Heat death of the universe", noPadNewer: true },
+
+  // Fictional & Pop Culture Timelines
+  { id: "fic-cthulhu-rlyeh", name: "Cthulhu Builds R'lyeh (Lovecraft)", type: "fiction", start_ma: 350, end_ma: 350, aliases: ["cthulhu", "r'lyeh", "great old ones", "lovecraft"], wikiTitle: "Cthulhu Mythos" },
+  { id: "fic-middle-earth-fourth-age", name: "Middle-earth Fourth Age Begins (Tolkien)", type: "fiction", start_ma: 0.008, end_ma: 0.008, aliases: ["middle-earth", "lord of the rings", "tolkien", "fourth age"], wikiTitle: "Middle-earth" },
+  { id: "fic-star-wars-crossover", name: "Falcon Crashes on Earth (Star Wars Crossover)", type: "fiction", start_ma: 0.000126, end_ma: 0.000126, aliases: ["star wars", "millennium falcon", "han solo", "long time ago"], wikiTitle: "Star Wars" },
+  { id: "fic-fallout-great-war", name: "The Great War (Fallout)", type: "fiction", start_ma: -0.000051, end_ma: -0.000051, aliases: ["fallout", "great war", "nuclear war", "vault-tec"], wikiTitle: "Fallout (series)" },
+  { id: "fic-hitchhikers-earth-demolished", name: "Earth Demolished for Bypass (Hitchhiker's)", type: "fiction", start_ma: 0, end_ma: 0, aliases: ["hitchhiker's guide", "vogon", "demolition", "earth destroyed"], wikiTitle: "The Hitchhiker's Guide to the Galaxy" },
+  { id: "fic-star-trek-first-contact", name: "First Contact with Vulcans (Star Trek)", type: "fiction", start_ma: -0.000037, end_ma: -0.000037, aliases: ["star trek", "first contact", "vulcans", "zephram cochrane"], wikiTitle: "First Contact (Star Trek)" },
+  { id: "fic-matrix-zion", name: "Zion Rebellion / The Matrix", type: "fiction", start_ma: -0.000173, end_ma: -0.000173, aliases: ["matrix", "zion", "neo", "sentinels"], wikiTitle: "The Matrix (franchise)" },
+  { id: "fic-planet-of-the-apes", name: "Taylor's Landing (Planet of the Apes)", type: "fiction", start_ma: -0.001952, end_ma: -0.001952, aliases: ["planet of the apes", "liberty", "apes movie", "statue of liberty"], wikiTitle: "Planet of the Apes" },
+  { id: "fic-dune-imperium", name: "Dune: Paul Atreides' Empire", type: "fiction", start_ma: -0.020000, end_ma: -0.020000, aliases: ["dune", "paul atreides", "muad'dib", "guild calendar"], wikiTitle: "Dune (novel)" },
+  { id: "fic-wh40k-imperium", name: "Warhammer 40k: Age of the Imperium", type: "fiction", start_ma: -0.038000, end_ma: -0.038000, aliases: ["wh40k", "warhammer", "god-emperor", "forty-first millennium"], wikiTitle: "Warhammer 40,000" },
+  { id: "fic-time-machine-eloi", name: "The Year 802,701 (H.G. Wells)", type: "fiction", start_ma: -0.802701, end_ma: -0.802701, aliases: ["time machine", "hg wells", "eloi", "morlocks"], wikiTitle: "The Time Machine" },
+  { id: "fic-time-machine-dying-earth", name: "The Dying Earth (H.G. Wells)", type: "fiction", start_ma: -30, end_ma: -30, aliases: ["time machine", "dying earth", "giant crabs", "30 million years"], wikiTitle: "The Time Machine" },
+  { id: "fic-doctor-who-end-of-earth", name: "Doctor Who: The End of the Earth", type: "fiction", start_ma: -5000, end_ma: -5000, aliases: ["doctor who", "end of the earth", "nine", "cassandra"], wikiTitle: "The End of the World (Doctor Who)" },
 ];
 
 export const TYPE_COLORS = {
@@ -443,6 +458,7 @@ export const TYPE_COLORS = {
   person: ["#6b3f1a", "#875323", "#a5692c", "#c47f35"],
   work: ["#0f5f5c", "#14736f", "#198882", "#229d96"],
   future: ["#1a3a5a", "#1e4a70", "#225a86", "#266a9c"],
+  fiction: ["#8b1a5a", "#a0206e", "#b52e80", "#c73c92"],
 };
 
 export const PRESETS = [
@@ -474,5 +490,10 @@ export const PRESETS = [
     id: "renaissances",
     label: "Renaissances",
     queries: ["islamic golden age", "carolingian", "renaissance", "bengal renaissance", "harlem renaissance", "european renaissance"],
+  },
+  {
+    id: "fictional-timelines",
+    label: "Fiction",
+    queries: ["cthulhu", "middle-earth", "falcon crashes", "fallout", "hitchhiker", "first contact", "matrix", "planet of the apes", "dune", "warhammer", "wells", "doctor who"],
   },
 ];
