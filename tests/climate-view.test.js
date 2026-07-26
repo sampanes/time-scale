@@ -51,4 +51,5 @@ test("timeline entries overlay at their true dates and report out-of-range selec
   assert.match(html, /Jesus of Nazareth · 4 BCE/);
   assert.match(html, /1 of 2 selected items visible/);
   assert.match(html, /data-remove-climate-event="first-hominins" class="outside-range"/);
+  assert.match(html, /data-climate-export="svg"/);
 });
