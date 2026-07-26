@@ -26,6 +26,7 @@ const uiState = {
 
 const climateState = {
   viewId: "industrial",
+  contextIds: [],
   layers: {
     context: true,
     callouts: true,
@@ -34,6 +35,40 @@ const climateState = {
     sources: true,
   },
 };
+
+function getClimateContextItems() {
+  return climateState.contextIds.map((id) => findTimelineItem(id)).filter(Boolean);
+}
+
+function addClimateContextItem(id) {
+  if (!findTimelineItem(id) || climateState.contextIds.includes(id)) return;
+  climateState.contextIds.push(id);
+  renderTimeline();
+  scheduleUrlStateUpdate();
+}
+
+function removeClimateContextItem(id) {
+  climateState.contextIds = climateState.contextIds.filter((itemId) => itemId !== id);
+  renderTimeline();
+  scheduleUrlStateUpdate();
+}
+
+function renderClimateEventResults(input) {
+  const resultsElement = elements.timelineContainer.querySelector(".climate-event-results");
+  if (!resultsElement) return;
+  const query = input.value.trim();
+  if (!query) {
+    resultsElement.innerHTML = "";
+    resultsElement.classList.remove("open");
+    return;
+  }
+
+  const results = search(query).filter((item) => !climateState.contextIds.includes(item.id)).slice(0, 6);
+  resultsElement.innerHTML = results.length
+    ? results.map((item) => `<button type="button" data-add-climate-event="${escapeHtml(item.id)}"><span>${escapeHtml(item.name)}</span><small>${escapeHtml(item.type)}</small></button>`).join("")
+    : `<span class="climate-event-empty">No matching timeline entries</span>`;
+  resultsElement.classList.add("open");
+}
 
 const pointerState = {
   pointers: new Map(),
@@ -606,6 +641,7 @@ function readInitialUrlState() {
   const params = new URLSearchParams(window.location.search);
   uiState.mode = params.get("mode") === "climate" ? "climate" : "timeline";
   climateState.viewId = params.get("climate") || climateState.viewId;
+  climateState.contextIds = (params.get("overlays") || "").split(",").filter((id) => Boolean(findTimelineItem(id)));
   const itemIds = (params.get("items") || "").split(",").filter(Boolean);
   selectedItems = itemIds.map((id) => findTimelineItem(id)).filter(Boolean);
 
@@ -637,6 +673,7 @@ function writeUrlState() {
   if (uiState.mode === "climate") {
     params.set("mode", "climate");
     params.set("climate", climateState.viewId);
+    if (climateState.contextIds.length) params.set("overlays", climateState.contextIds.join(","));
   }
 
   if (selectedItems.length) {
@@ -663,7 +700,10 @@ function formatUrlNumber(value) {
 
 function renderTimeline() {
   if (uiState.mode === "climate") {
-    elements.timelineContainer.innerHTML = renderClimateExperience(climateState);
+    elements.timelineContainer.innerHTML = renderClimateExperience({
+      ...climateState,
+      contextItems: getClimateContextItems(),
+    });
     return;
   }
 
@@ -1035,6 +1075,18 @@ function bindEvents() {
   });
 
   elements.timelineContainer.addEventListener("click", (event) => {
+    const addClimateEventButton = event.target.closest("[data-add-climate-event]");
+    if (addClimateEventButton) {
+      addClimateContextItem(addClimateEventButton.dataset.addClimateEvent);
+      return;
+    }
+
+    const removeClimateEventButton = event.target.closest("[data-remove-climate-event]");
+    if (removeClimateEventButton) {
+      removeClimateContextItem(removeClimateEventButton.dataset.removeClimateEvent);
+      return;
+    }
+
     const climateViewButton = event.target.closest("[data-climate-view]");
     if (climateViewButton) {
       climateState.viewId = climateViewButton.dataset.climateView;
@@ -1057,6 +1109,11 @@ function bindEvents() {
 
     const detailButton = event.target.closest("[data-detail-action='close']");
     if (detailButton) closeTimelineDetail();
+  });
+
+  elements.timelineContainer.addEventListener("input", (event) => {
+    const climateEventInput = event.target.closest("[data-climate-event-search]");
+    if (climateEventInput) renderClimateEventResults(climateEventInput);
   });
 
   elements.timelineContainer.addEventListener("change", (event) => {

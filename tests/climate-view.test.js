@@ -41,3 +41,14 @@ test("climate layers can independently declutter the experience", () => {
   assert.doesNotMatch(html, /climate-sources/);
   assert.match(html, /data-climate-layer="context"/);
 });
+
+test("timeline entries overlay at their true dates and report out-of-range selections", () => {
+  const jesus = { id: "person-jesus", name: "Jesus of Nazareth", start_ma: 0.00203, end_ma: 0.001996, type: "person" };
+  const hominins = { id: "first-hominins", name: "First Hominins", start_ma: 7, end_ma: 7, type: "event" };
+  const state = { viewId: "ice-ages", layers: allLayers, contextItems: [jesus, hominins] };
+  const html = renderClimateExperience(state);
+
+  assert.match(html, /Jesus of Nazareth · 4 BCE/);
+  assert.match(html, /1 of 2 selected items visible/);
+  assert.match(html, /data-remove-climate-event="first-hominins" class="outside-range"/);
+});

@@ -1122,6 +1122,161 @@ input[type="text"]:focus {
   outline-offset: 2px;
 }
 
+.climate-event-picker {
+  display: grid;
+  max-width: 78rem;
+  grid-template-columns: minmax(14rem, 0.7fr) minmax(16rem, 1fr);
+  gap: 0.7rem 1rem;
+  margin: 0 auto 1rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(16, 17, 20, 0.86);
+  padding: 0.8rem;
+}
+
+.climate-event-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  grid-column: 1 / -1;
+  align-items: end;
+}
+
+.climate-event-heading span,
+.climate-event-heading strong {
+  display: block;
+}
+
+.climate-event-heading span {
+  color: var(--violet);
+  font-size: 0.54rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.climate-event-heading strong {
+  margin-top: 0.2rem;
+  color: var(--text);
+  font-family: "Playfair Display", serif;
+  font-size: 0.95rem;
+}
+
+.climate-event-heading small {
+  color: var(--quiet);
+  font-size: 0.52rem;
+  text-align: right;
+}
+
+.climate-event-search {
+  position: relative;
+}
+
+.climate-event-search input[type="search"] {
+  width: 100%;
+  height: 2.45rem;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  outline: none;
+  background: #090a0c;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.68rem;
+  padding: 0 0.75rem;
+}
+
+.climate-event-search input[type="search"]:focus {
+  border-color: var(--violet);
+  box-shadow: 0 0 0 2px rgba(185, 156, 255, 0.12);
+}
+
+.climate-event-results {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  right: 0;
+  left: 0;
+  z-index: 80;
+  display: none;
+  overflow: hidden;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: #15171b;
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.48);
+}
+
+.climate-event-results.open {
+  display: grid;
+}
+
+.climate-event-results button {
+  display: flex;
+  min-height: 2.4rem;
+  cursor: pointer;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid rgba(89, 97, 107, 0.25);
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.64rem;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+}
+
+.climate-event-results button:hover {
+  background: rgba(185, 156, 255, 0.1);
+}
+
+.climate-event-results small {
+  color: var(--quiet);
+  font-size: 0.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.climate-event-empty {
+  color: var(--quiet);
+  font-size: 0.6rem;
+  padding: 0.7rem;
+}
+
+.climate-event-chips {
+  display: flex;
+  min-height: 2.45rem;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-content: center;
+  align-items: center;
+}
+
+.climate-event-chips > span {
+  color: var(--quiet);
+  font-size: 0.57rem;
+  line-height: 1.45;
+}
+
+.climate-event-chips button {
+  min-height: 2rem;
+  cursor: pointer;
+  border: 1px solid rgba(185, 156, 255, 0.5);
+  border-radius: 999px;
+  background: rgba(185, 156, 255, 0.1);
+  color: var(--violet);
+  font-family: inherit;
+  font-size: 0.56rem;
+  padding: 0.35rem 0.6rem;
+}
+
+.climate-event-chips button span {
+  margin-left: 0.35rem;
+}
+
+.climate-event-chips button.outside-range {
+  border-style: dashed;
+  opacity: 0.48;
+}
+
 .climate-figure {
   max-width: 78rem;
   margin: 0 auto;
@@ -1255,6 +1410,28 @@ input[type="text"]:focus {
   fill: var(--text);
   font-family: "Space Mono", monospace;
   font-size: 12px;
+}
+
+.climate-event-marker line {
+  stroke: rgba(185, 156, 255, 0.76);
+  stroke-dasharray: 2 5;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.climate-event-marker circle {
+  fill: var(--violet);
+  stroke: var(--bg);
+  stroke-width: 3;
+}
+
+.climate-event-marker text {
+  fill: #dfd2ff;
+  paint-order: stroke;
+  stroke: rgba(5, 5, 7, 0.92);
+  stroke-width: 4px;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
 }
 
 .climate-takeaway {
@@ -1516,6 +1693,20 @@ input[type="text"]:focus {
   .climate-layer-panel label span {
     min-height: 2.25rem;
     padding: 0.58rem 0.7rem;
+  }
+
+  .climate-event-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .climate-event-heading {
+    display: block;
+  }
+
+  .climate-event-heading small {
+    display: block;
+    margin-top: 0.35rem;
+    text-align: left;
   }
 
   .climate-figure > header {
