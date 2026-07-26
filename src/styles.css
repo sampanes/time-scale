@@ -1322,6 +1322,34 @@ input[type="text"]:focus {
   text-align: right;
 }
 
+.climate-figure-actions {
+  display: flex;
+  max-width: 31rem;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.climate-figure-actions button {
+  min-height: 2.15rem;
+  flex: 0 0 auto;
+  cursor: pointer;
+  border: 1px solid rgba(244, 184, 74, 0.55);
+  border-radius: 6px;
+  background: rgba(244, 184, 74, 0.1);
+  color: var(--accent);
+  font-family: inherit;
+  font-size: 0.56rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 0 0.7rem;
+  text-transform: uppercase;
+}
+
+.climate-figure-actions button:hover {
+  border-color: var(--accent);
+  background: rgba(244, 184, 74, 0.18);
+}
+
 .climate-chart-scroll {
   overflow-x: auto;
   overscroll-behavior-inline: contain;
@@ -1717,6 +1745,20 @@ input[type="text"]:focus {
     display: block;
     margin-top: 0.45rem;
     text-align: left;
+  }
+
+  .climate-figure-actions {
+    max-width: none;
+    justify-content: space-between;
+    align-items: end;
+  }
+
+  .climate-figure-actions small {
+    max-width: 13rem;
+  }
+
+  .climate-figure-actions button {
+    min-height: 2.6rem;
   }
 
   .climate-chart {

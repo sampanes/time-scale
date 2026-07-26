@@ -70,6 +70,59 @@ function renderClimateEventResults(input) {
   resultsElement.classList.add("open");
 }
 
+function exportClimateSvg() {
+  const sourceSvg = elements.timelineContainer.querySelector(".climate-chart");
+  if (!sourceSvg) return;
+
+  const clone = sourceSvg.cloneNode(true);
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("width", "1000");
+  clone.setAttribute("height", "520");
+
+  const exportStyles = document.createElementNS("http://www.w3.org/2000/svg", "style");
+  exportStyles.textContent = `
+    svg { background: #080a0c; }
+    .climate-grid line { stroke: #30353b; stroke-dasharray: 3 8; }
+    .climate-grid text, .climate-x-label, .climate-axis-title { fill: #7f888f; font: 13px monospace; }
+    .climate-grid text { text-anchor: end; }
+    .climate-area { fill: #f4b84a; fill-opacity: .10; }
+    .climate-line { fill: none; stroke: #f4b84a; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5; }
+    .climate-uncertainty { fill: #b99cff; fill-opacity: .18; stroke: #b99cff; stroke-opacity: .55; stroke-dasharray: 5 6; stroke-width: 2; }
+    .climate-context rect { fill: #72d5c8; fill-opacity: .12; stroke: #72d5c8; stroke-opacity: .4; }
+    .climate-context.context-1 rect { fill: #b99cff; fill-opacity: .11; stroke: #b99cff; }
+    .climate-context.context-2 rect { fill: #f4b84a; fill-opacity: .10; stroke: #f4b84a; }
+    .climate-context text { fill: #f1eee7; font: 11px monospace; }
+    .climate-callout circle { fill: #ff6b4a; stroke: #080a0c; stroke-width: 3; }
+    .climate-callout line { stroke: #ff6b4a; }
+    .climate-callout text { fill: #f1eee7; font: 12px monospace; }
+    .climate-event-marker line { stroke: #b99cff; stroke-dasharray: 2 5; stroke-width: 2; }
+    .climate-event-marker circle { fill: #b99cff; stroke: #080a0c; stroke-width: 3; }
+    .climate-event-marker text { fill: #dfd2ff; paint-order: stroke; stroke: #080a0c; stroke-width: 4px; font: 11px monospace; }
+  `;
+  clone.prepend(exportStyles);
+
+  const metadata = document.createElementNS("http://www.w3.org/2000/svg", "metadata");
+  metadata.textContent = `To Scale: Time climate view. NOAA GML, NOAA/WDS ice-core composite, and IPCC AR6 sources are documented in the interactive view. Exported ${new Date().toISOString()}.`;
+  clone.prepend(metadata);
+
+  const svgText = new XMLSerializer().serializeToString(clone);
+  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const downloadUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  const overlaySuffix = climateState.contextIds.length ? `-${climateState.contextIds.length}-overlays` : "";
+  link.href = downloadUrl;
+  link.download = `to-scale-climate-${climateState.viewId}${overlaySuffix}.svg`;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  const exportButton = elements.timelineContainer.querySelector("[data-climate-export='svg']");
+  if (exportButton) {
+    exportButton.textContent = "Saved SVG";
+    exportButton.classList.add("exported");
+  }
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+}
+
 const pointerState = {
   pointers: new Map(),
   primaryPointerId: null,
@@ -1075,6 +1128,12 @@ function bindEvents() {
   });
 
   elements.timelineContainer.addEventListener("click", (event) => {
+    const climateExportButton = event.target.closest("[data-climate-export='svg']");
+    if (climateExportButton) {
+      exportClimateSvg();
+      return;
+    }
+
     const addClimateEventButton = event.target.closest("[data-add-climate-event]");
     if (addClimateEventButton) {
       addClimateContextItem(addClimateEventButton.dataset.addClimateEvent);

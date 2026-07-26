@@ -192,7 +192,13 @@ export function renderClimateExperience(state) {
         </div>
       </section>
       <section class="climate-figure">
-        <header><div><span>${view.rangeLabel}</span><strong>CO₂ concentration over time</strong></div><small>Vertical scale changes between views; values remain labeled in ppm.</small></header>
+        <header>
+          <div><span>${view.rangeLabel}</span><strong>CO₂ concentration over time</strong></div>
+          <div class="climate-figure-actions">
+            <small>Vertical scale changes between views; values remain labeled in ppm.</small>
+            <button type="button" data-climate-export="svg">Export SVG</button>
+          </div>
+        </header>
         <div class="climate-chart-scroll">${renderClimateChart(view, state.layers, timelineItems)}</div>
         <p class="climate-takeaway">${view.takeaway}</p>
       </section>
