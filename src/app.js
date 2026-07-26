@@ -3,6 +3,7 @@ import { searchTimelineItems } from "./lib/search.js";
 import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
 import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
+import { renderClimateExperience } from "./lib/climate-view.js";
 
 let selectedItems = [];
 let selectedDetailId = null;
@@ -17,9 +18,21 @@ const viewState = {
 };
 
 const uiState = {
+  mode: "timeline",
   chromeCollapsed: false,
   shareCopied: false,
   shareResetTimer: null,
+};
+
+const climateState = {
+  viewId: "industrial",
+  layers: {
+    context: true,
+    callouts: true,
+    uncertainty: true,
+    indicators: true,
+    sources: true,
+  },
 };
 
 const pointerState = {
@@ -53,7 +66,22 @@ const elements = {
   presetControls: document.getElementById("presetControls"),
   addButton: document.querySelector("[data-action='add']"),
   clearButton: document.querySelector("[data-action='clear']"),
+  modeButtons: [...(document.querySelectorAll?.("[data-mode]") ?? [])],
 };
+
+function setMode(mode) {
+  uiState.mode = mode === "climate" ? "climate" : "timeline";
+  elements.appShell.classList.toggle("climate-mode", uiState.mode === "climate");
+  elements.modeButtons.forEach((button) => {
+    const active = button.dataset.mode === uiState.mode;
+    button.classList.toggle("active", active);
+    button.setAttribute("aria-pressed", String(active));
+  });
+  selectedDetailId = null;
+  hideTooltip();
+  renderTimeline();
+  scheduleUrlStateUpdate();
+}
 
 function findTimelineItem(id) {
   return TIMELINE_ITEMS.find((item) => item.id === id);
@@ -576,6 +604,8 @@ async function shareCurrentUrl() {
 
 function readInitialUrlState() {
   const params = new URLSearchParams(window.location.search);
+  uiState.mode = params.get("mode") === "climate" ? "climate" : "timeline";
+  climateState.viewId = params.get("climate") || climateState.viewId;
   const itemIds = (params.get("items") || "").split(",").filter(Boolean);
   selectedItems = itemIds.map((id) => findTimelineItem(id)).filter(Boolean);
 
@@ -604,6 +634,10 @@ function scheduleUrlStateUpdate() {
 
 function writeUrlState() {
   const params = new URLSearchParams();
+  if (uiState.mode === "climate") {
+    params.set("mode", "climate");
+    params.set("climate", climateState.viewId);
+  }
 
   if (selectedItems.length) {
     params.set("items", selectedItems.map((item) => item.id).join(","));
@@ -628,6 +662,11 @@ function formatUrlNumber(value) {
 }
 
 function renderTimeline() {
+  if (uiState.mode === "climate") {
+    elements.timelineContainer.innerHTML = renderClimateExperience(climateState);
+    return;
+  }
+
   if (!selectedItems.length) {
     elements.timelineContainer.innerHTML = `
       ${renderTimelineToolbar(false)}
@@ -912,6 +951,10 @@ function moveTooltip(event) {
 }
 
 function bindEvents() {
+  elements.modeButtons.forEach((button) => {
+    button.addEventListener("click", () => setMode(button.dataset.mode));
+  });
+
   elements.brandToggle.addEventListener("click", () => {
     setChromeCollapsed(!uiState.chromeCollapsed);
   });
@@ -992,6 +1035,14 @@ function bindEvents() {
   });
 
   elements.timelineContainer.addEventListener("click", (event) => {
+    const climateViewButton = event.target.closest("[data-climate-view]");
+    if (climateViewButton) {
+      climateState.viewId = climateViewButton.dataset.climateView;
+      renderTimeline();
+      scheduleUrlStateUpdate();
+      return;
+    }
+
     const presetButton = event.target.closest("[data-preset-id]");
     if (presetButton) {
       loadPreset(presetButton.dataset.presetId);
@@ -1006,6 +1057,13 @@ function bindEvents() {
 
     const detailButton = event.target.closest("[data-detail-action='close']");
     if (detailButton) closeTimelineDetail();
+  });
+
+  elements.timelineContainer.addEventListener("change", (event) => {
+    const layerInput = event.target.closest("[data-climate-layer]");
+    if (!layerInput) return;
+    climateState.layers[layerInput.dataset.climateLayer] = layerInput.checked;
+    renderTimeline();
   });
 
   elements.timelineContainer.addEventListener("pointerover", (event) => {
@@ -1029,6 +1087,7 @@ function bindEvents() {
   elements.timelineContainer.addEventListener(
     "wheel",
     (event) => {
+      if (uiState.mode === "climate") return;
       if (!hasSelection()) return;
 
       event.preventDefault();
@@ -1054,6 +1113,7 @@ function bindEvents() {
 }
 
 function beginPointerInteraction(event) {
+  if (uiState.mode === "climate") return;
   if (!hasSelection() || isInteractiveTarget(event.target)) return;
   if (event.pointerType === "mouse" && event.button !== 0) return;
 
@@ -1171,6 +1231,7 @@ function endPointerInteraction(event) {
 
 readInitialUrlState();
 applyChromeState();
+setMode(uiState.mode);
 renderSearchCount();
 renderPresets();
 bindEvents();
