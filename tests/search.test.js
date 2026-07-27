@@ -73,3 +73,20 @@ test("searchTimelineItems finds great works by aliases", () => {
     assert.notEqual(result.start_ma, result.end_ma);
   }
 });
+
+test("searchTimelineItems finds Athenian and Spartan figures and Greek wars", () => {
+  for (const [query, id, type] of [
+    ["king leonidas", "person-leonidas-i", "person"],
+    ["athenian admiral", "person-themistocles", "person"],
+    ["age of pericles", "person-pericles", "person"],
+    ["spartan admiral", "person-lysander", "person"],
+    ["athens vs sparta", "peloponnesian-war", "event"],
+    ["300 spartans", "battle-thermopylae", "event"],
+    ["athenian disaster", "sicilian-expedition", "event"],
+  ]) {
+    const result = searchTimelineItems(TIMELINE_ITEMS, query)[0];
+
+    assert.equal(result.id, id);
+    assert.equal(result.type, type);
+  }
+});
