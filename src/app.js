@@ -4,10 +4,12 @@ import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/
 import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
 import { buildVerticalClimateViewModel, renderVerticalClimateLane } from "./lib/vertical-climate-view.js";
+import { CLIMATE_METRICS, DEFAULT_CLIMATE_METRIC_IDS } from "./data/climate-metrics.js";
 
 let selectedItems = [];
 let selectedDetailId = null;
 let autocompleteIndex = -1;
+let activeClimateMetricIds = [...DEFAULT_CLIMATE_METRIC_IDS];
 
 const viewState = {
   pxPerMa: 1,
@@ -191,6 +193,7 @@ const elements = {
   searchInput: document.getElementById("searchInput"),
   autocompleteList: document.getElementById("acList"),
   chips: document.getElementById("chips"),
+  climateMetricControls: document.getElementById("climateMetricControls"),
   timelineContainer: document.getElementById("timelineContainer"),
   tooltip: document.getElementById("tooltip"),
   presetControls: document.getElementById("presetControls"),
@@ -209,6 +212,7 @@ function setMode(mode) {
   });
   selectedDetailId = null;
   hideTooltip();
+  renderClimateMetricControls();
   renderTimeline();
   scheduleUrlStateUpdate();
 }
@@ -601,6 +605,26 @@ function renderChips() {
     .join("");
 }
 
+function renderClimateMetricControls() {
+  if (!elements.climateMetricControls) return;
+  elements.climateMetricControls.innerHTML = `
+    <span class="climate-metric-label">Climate tracks</span>
+    ${CLIMATE_METRICS.map((metric) => {
+      const active = activeClimateMetricIds.includes(metric.id);
+      return `<button class="climate-metric-chip${active ? " active" : ""}" type="button" data-climate-metric="${metric.id}" aria-pressed="${active}" title="${escapeHtml(metric.label)}">${escapeHtml(metric.shortLabel)} <span aria-hidden="true">${active ? "×" : "+"}</span></button>`;
+    }).join("")}
+  `;
+}
+
+function toggleClimateMetric(id) {
+  if (!CLIMATE_METRICS.some((metric) => metric.id === id)) return;
+  activeClimateMetricIds = activeClimateMetricIds.includes(id)
+    ? activeClimateMetricIds.filter((metricId) => metricId !== id)
+    : [...activeClimateMetricIds, id];
+  renderClimateMetricControls();
+  renderTimeline();
+  scheduleUrlStateUpdate();
+}
 function applyChromeState() {
   elements.appShell.classList.toggle("chrome-collapsed", uiState.chromeCollapsed);
   elements.brandToggle.setAttribute("aria-expanded", String(!uiState.chromeCollapsed));
@@ -743,6 +767,10 @@ async function shareCurrentUrl() {
 function readInitialUrlState() {
   const params = new URLSearchParams(window.location.search);
   uiState.mode = params.get("mode") === "climate" ? "climate" : "timeline";
+  if (params.has("metrics")) {
+    const requestedMetrics = params.get("metrics") === "none" ? [] : params.get("metrics").split(",");
+    activeClimateMetricIds = requestedMetrics.filter((id) => CLIMATE_METRICS.some((metric) => metric.id === id));
+  }
   climateState.viewId = params.get("climate") || climateState.viewId;
   climateState.contextIds = (params.get("overlays") || "").split(",").filter((id) => Boolean(findTimelineItem(id)));
   if (params.has("layers")) {
@@ -781,6 +809,7 @@ function writeUrlState() {
   const params = new URLSearchParams();
   if (uiState.mode === "climate") {
     params.set("mode", "climate");
+    params.set("metrics", activeClimateMetricIds.length ? activeClimateMetricIds.join(",") : "none");
   }
 
   if (selectedItems.length) {
@@ -853,6 +882,7 @@ function renderTimeline() {
         range: viewModel.range,
         pxPerMa: viewState.pxPerMa,
         offsetY: renderOffsetY,
+        activeMetricIds: activeClimateMetricIds,
       }), viewportHeight)
     : "";
   const climateClass = uiState.mode === "climate" ? " integrated-climate" : "";
@@ -1158,6 +1188,11 @@ function bindEvents() {
     if (removeButton) removeItem(removeButton.dataset.removeId);
   });
 
+  elements.climateMetricControls?.addEventListener("click", (event) => {
+    const metricButton = event.target.closest("[data-climate-metric]");
+    if (metricButton) toggleClimateMetric(metricButton.dataset.climateMetric);
+  });
+
   elements.presetControls.addEventListener("click", (event) => {
     const presetButton = event.target.closest("[data-preset-id]");
     if (presetButton) {
@@ -1419,4 +1454,5 @@ renderSearchCount();
 renderPresets();
 bindEvents();
 renderChips();
+renderClimateMetricControls();
 renderTimeline();
