@@ -132,40 +132,6 @@ h1 {
   color: #151006;
 }
 
-.app-shell.climate-mode .controls {
-  display: none;
-}
-
-.app-shell.climate-mode .topbar {
-  grid-template-columns: 1fr;
-  padding-block: 0.7rem;
-}
-
-.app-shell.climate-mode .timeline-container {
-  overflow: auto;
-  cursor: default;
-  touch-action: pan-x pan-y;
-  user-select: text;
-  overscroll-behavior: contain;
-  -webkit-touch-callout: default;
-  -webkit-user-select: text;
-}
-
-.app-shell.climate-mode .brand-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-}
-
-.app-shell.climate-mode .brand-row h1,
-.app-shell.climate-mode .brand-row .subtitle {
-  grid-column: 1;
-}
-
-.app-shell.climate-mode .mode-switch {
-  grid-column: 2;
-  grid-row: 1 / span 2;
-}
 
 .app-shell.chrome-collapsed .topbar {
   grid-template-columns: 1fr;
@@ -611,6 +577,155 @@ input[type="text"]:focus {
   left: 0;
   z-index: 1;
   isolation: isolate;
+}
+.integrated-climate .ruler-column,
+.integrated-climate .event-column {
+  right: 38%;
+}
+
+.climate-column {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  width: 38%;
+  overflow: hidden;
+  border-left: 1px solid rgba(114, 213, 200, 0.5);
+  background: linear-gradient(90deg, rgba(7, 18, 19, 0.96), rgba(7, 13, 15, 0.92));
+  pointer-events: none;
+}
+
+.climate-column svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.vertical-climate-area {
+  fill: rgba(114, 213, 200, 0.16);
+}
+
+.vertical-climate-line {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.vertical-climate-proxy .vertical-climate-area {
+  fill: rgba(185, 156, 255, 0.13);
+}
+
+.vertical-climate-proxy .vertical-climate-line {
+  stroke: var(--violet);
+  stroke-dasharray: 5 5;
+}
+
+.vertical-climate-modern .vertical-climate-area {
+  fill: rgba(255, 107, 74, 0.2);
+}
+
+.vertical-climate-modern .vertical-climate-line {
+  stroke: var(--accent-hot);
+}
+
+.vertical-climate-uncertainty {
+  stroke: rgba(185, 156, 255, 0.65);
+  stroke-width: 5;
+  vector-effect: non-scaling-stroke;
+}
+
+.vertical-climate-midline {
+  stroke: rgba(114, 213, 200, 0.18);
+  stroke-dasharray: 3 7;
+  vector-effect: non-scaling-stroke;
+}
+
+.vertical-climate-heading {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  left: 0.65rem;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--cyan);
+  font-size: 0.56rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.vertical-climate-heading span {
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.vertical-climate-scale {
+  position: absolute;
+  top: 1.85rem;
+  right: 0.55rem;
+  left: 0.55rem;
+  z-index: 4;
+  display: flex;
+  justify-content: space-between;
+  color: var(--quiet);
+  font-size: 0.48rem;
+}
+
+.vertical-climate-legend {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 1.45rem;
+  left: 0.5rem;
+  z-index: 4;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 0.55rem;
+  color: var(--muted);
+  font-size: 0.48rem;
+}
+
+.vertical-climate-legend span::before {
+  content: "";
+  display: inline-block;
+  width: 0.5rem;
+  height: 2px;
+  margin-right: 0.25rem;
+  background: var(--cyan);
+  vertical-align: middle;
+}
+
+.vertical-climate-legend .proxy::before {
+  background: var(--violet);
+}
+
+.vertical-climate-legend .modern::before {
+  background: var(--accent-hot);
+}
+
+.vertical-climate-sources {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.45rem;
+  left: 0.5rem;
+  z-index: 5;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.46rem;
+  pointer-events: auto;
+}
+
+.vertical-climate-sources a {
+  color: var(--muted);
+}
+
+.app-shell.climate-mode .timeline-readout {
+  right: calc(38% + 1rem);
 }
 
 .ruler-tick {
@@ -1818,22 +1933,44 @@ input[type="text"]:focus {
   .event-point-label {
     font-size: 0.62rem;
   }
-
-  .app-shell.climate-mode .topbar {
-    padding: 0.55rem 0.7rem;
+  .integrated-climate .ruler-column,
+  .integrated-climate .event-column {
+    right: 44%;
   }
 
-  .app-shell.climate-mode .brand-row h1 {
-    font-size: 1.15rem;
+  .climate-column {
+    width: 44%;
   }
 
-  .app-shell.climate-mode .brand-row .subtitle {
-    display: none;
+  .vertical-climate-sources {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 0.45rem;
+  left: 0.5rem;
+  z-index: 5;
+  display: flex;
+  gap: 0.5rem;
+  font-size: 0.46rem;
+  pointer-events: auto;
+}
+
+.vertical-climate-sources a {
+  color: var(--muted);
+}
+
+.app-shell.climate-mode .timeline-readout {
+    right: calc(44% + 0.65rem);
   }
 
-  .app-shell.climate-mode .mode-switch {
-    grid-row: 1;
+  .vertical-climate-heading {
+    display: grid;
+    gap: 0.15rem;
   }
+
+  .vertical-climate-scale {
+    top: 2.45rem;
+  }
+
 
   .climate-experience {
     padding: 1rem 0.75rem calc(1.5rem + env(safe-area-inset-bottom, 0));

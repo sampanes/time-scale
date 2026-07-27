@@ -3,7 +3,7 @@ import { searchTimelineItems } from "./lib/search.js";
 import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
 import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
-import { renderClimateExperience } from "./lib/climate-view.js";
+import { buildVerticalClimateViewModel, renderVerticalClimateLane } from "./lib/vertical-climate-view.js";
 
 let selectedItems = [];
 let selectedDetailId = null;
@@ -142,15 +142,10 @@ function showClimateExportStatus(kind, label) {
 }
 
 function exportClimateHtml() {
-  const experience = elements.timelineContainer.querySelector(".climate-experience");
+  const experience = elements.timelineContainer.querySelector(".timeline-stage.integrated-climate");
   if (!experience) return;
 
   const clone = experience.cloneNode(true);
-  clone.querySelectorAll(".climate-event-results").forEach((element) => element.remove());
-  clone.querySelectorAll("input, button").forEach((element) => {
-    element.disabled = true;
-    element.setAttribute("aria-disabled", "true");
-  });
 
   const localCss = [...document.styleSheets].map((sheet) => {
     try {
@@ -160,15 +155,14 @@ function exportClimateHtml() {
     }
   }).join("\n");
 
-  const title = `To Scale: Climate — ${climateState.viewId}`;
+  const title = "To Scale: Time - integrated climate timeline";
+  const readout = elements.timelineContainer.querySelector(".timeline-readout")?.outerHTML || "";
   const html = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${title}</title><style>${localCss}
-html,body{height:auto;overflow:auto}.climate-experience{min-height:100vh}.climate-event-search{display:none}
-</style></head><body>${clone.outerHTML}</body></html>`;
-  const overlaySuffix = climateState.contextIds.length ? `-${climateState.contextIds.length}-overlays` : "";
-  downloadTextFile(html, `to-scale-climate-${climateState.viewId}${overlaySuffix}.html`, "text/html;charset=utf-8");
-  showClimateExportStatus("html", "Saved HTML");
+html,body{height:100%;overflow:hidden}.timeline-container{height:100%;position:relative}.timeline-stage{top:0}
+</style></head><body><main class="timeline-container">${readout}${clone.outerHTML}</main></body></html>`;
+  downloadTextFile(html, "to-scale-integrated-climate-timeline.html", "text/html;charset=utf-8");
 }
 
 const pointerState = {
@@ -638,6 +632,9 @@ function closeTimelineDetail() {
 function renderTimelineToolbar(isEnabled) {
   const disabled = isEnabled ? "" : " disabled";
   const shareLabel = uiState.shareCopied ? "Copied" : "Share";
+  const exportButton = uiState.mode === "climate"
+    ? `<button class="tool-btn" type="button" data-view-action="export" title="Export this integrated view"${disabled}>Export</button>`
+    : "";
 
   return `
     <div class="timeline-toolbar" aria-label="Timeline controls">
@@ -645,6 +642,7 @@ function renderTimelineToolbar(isEnabled) {
       <button class="tool-btn icon-btn" type="button" data-view-action="zoom-out" title="Zoom out"${disabled}>-</button>
       <button class="tool-btn icon-btn" type="button" data-view-action="zoom-in" title="Zoom in"${disabled}>+</button>
       <button class="tool-btn" type="button" data-view-action="share" title="Copy share link"${disabled}>${shareLabel}</button>
+      ${exportButton}
     </div>
   `;
 }
@@ -715,6 +713,8 @@ function handleViewAction(action) {
     zoomAt(getTimelineViewportHeight() / 2, 0.8);
   } else if (action === "share") {
     shareCurrentUrl();
+  } else if (action === "export") {
+    exportClimateHtml();
   }
 }
 
@@ -781,9 +781,6 @@ function writeUrlState() {
   const params = new URLSearchParams();
   if (uiState.mode === "climate") {
     params.set("mode", "climate");
-    params.set("climate", climateState.viewId);
-    if (climateState.contextIds.length) params.set("overlays", climateState.contextIds.join(","));
-    params.set("layers", CLIMATE_LAYER_IDS.filter((id) => climateState.layers[id]).join(","));
   }
 
   if (selectedItems.length) {
@@ -809,13 +806,6 @@ function formatUrlNumber(value) {
 }
 
 function renderTimeline() {
-  if (uiState.mode === "climate") {
-    elements.timelineContainer.innerHTML = renderClimateExperience({
-      ...climateState,
-      contextItems: getClimateContextItems(),
-    });
-    return;
-  }
 
   if (!selectedItems.length) {
     elements.timelineContainer.innerHTML = `
@@ -858,6 +848,14 @@ function renderTimeline() {
     .map((segment) => renderVerticalSegment(segment, renderOffsetY, viewportTop, viewportBottom))
     .join("");
   const nowHtml = renderNowLine(viewModel.nowY, renderOffsetY, viewportTop, viewportBottom, viewModel.nowActive);
+  const climateLaneHtml = uiState.mode === "climate"
+    ? renderVerticalClimateLane(buildVerticalClimateViewModel({
+        range: viewModel.range,
+        pxPerMa: viewState.pxPerMa,
+        offsetY: renderOffsetY,
+      }), viewportHeight)
+    : "";
+  const climateClass = uiState.mode === "climate" ? " integrated-climate" : "";
 
   elements.timelineContainer.innerHTML = `
     ${renderTimelineToolbar(true)}
@@ -869,9 +867,10 @@ function renderTimeline() {
       </div>
       <div>${viewModel.labels.span} span / ${viewModel.selectedCount} selected / Ma = million years</div>
     </div>
-    <div class="timeline-stage" style="height:${viewportHeight}px;">
+    <div class="timeline-stage${climateClass}" style="height:${viewportHeight}px;">
       <div class="ruler-column">${ticksHtml}</div>
       <div class="event-column">${segmentsHtml}${nowHtml}</div>
+      ${climateLaneHtml}
     </div>
     ${renderDetailPanel()}
   `;
@@ -1273,7 +1272,6 @@ function bindEvents() {
   elements.timelineContainer.addEventListener(
     "wheel",
     (event) => {
-      if (uiState.mode === "climate") return;
       if (!hasSelection()) return;
 
       event.preventDefault();
@@ -1299,7 +1297,6 @@ function bindEvents() {
 }
 
 function beginPointerInteraction(event) {
-  if (uiState.mode === "climate") return;
   if (!hasSelection() || isInteractiveTarget(event.target)) return;
   if (event.pointerType === "mouse" && event.button !== 0) return;
 
