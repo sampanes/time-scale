@@ -269,6 +269,44 @@ input[type="text"]:focus {
   align-items: center;
 }
 
+.climate-metric-controls {
+  display: none;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.app-shell.climate-mode .climate-metric-controls {
+  display: flex;
+}
+
+.climate-metric-label {
+  color: var(--quiet);
+  font-size: 0.58rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.climate-metric-chip {
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: 0.61rem "Space Mono", monospace;
+  padding: 0.24rem 0.5rem;
+}
+
+.climate-metric-chip:hover,
+.climate-metric-chip.active {
+  border-color: var(--cyan);
+  background: rgba(114, 213, 200, 0.1);
+  color: var(--text);
+}
+
+.climate-metric-chip span {
+  color: var(--cyan);
+}
 .presets {
   position: relative;
   min-height: 1.85rem;
@@ -604,12 +642,13 @@ input[type="text"]:focus {
 }
 
 .vertical-climate-area {
-  fill: rgba(114, 213, 200, 0.16);
+  fill: var(--track-color, var(--cyan));
+  fill-opacity: 0.12;
 }
 
 .vertical-climate-line {
   fill: none;
-  stroke: var(--cyan);
+  stroke: var(--track-color, var(--cyan));
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-width: 4;
@@ -696,7 +735,7 @@ input[type="text"]:focus {
   width: 0.5rem;
   height: 2px;
   margin-right: 0.25rem;
-  background: var(--cyan);
+  background: var(--track-color, var(--cyan));
   vertical-align: middle;
 }
 
@@ -724,6 +763,16 @@ input[type="text"]:focus {
   color: var(--muted);
 }
 
+.vertical-climate-empty {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  left: 0.75rem;
+  color: var(--quiet);
+  font-size: 0.62rem;
+  text-align: center;
+  text-transform: uppercase;
+}
 .app-shell.climate-mode .timeline-readout {
   right: calc(38% + 1rem);
 }
@@ -1958,6 +2007,16 @@ input[type="text"]:focus {
   color: var(--muted);
 }
 
+.vertical-climate-empty {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  left: 0.75rem;
+  color: var(--quiet);
+  font-size: 0.62rem;
+  text-align: center;
+  text-transform: uppercase;
+}
 .app-shell.climate-mode .timeline-readout {
     right: calc(44% + 0.65rem);
   }
