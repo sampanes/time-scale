@@ -85,8 +85,21 @@ export function renderClimateChart(view, layers, timelineItems = []) {
       }).join("")
     : "";
 
-  const uncertainty = layers.uncertainty && uncertaintyPath(view)
+  const uncertainty = layers.uncertainty && view.connectPoints !== false && uncertaintyPath(view)
     ? `<path class="climate-uncertainty" d="${uncertaintyPath(view)}"/>`
+    : "";
+
+  const assessedPoints = view.connectPoints === false
+    ? view.co2.map((point) => {
+        const x = sx(view, point.x);
+        const y = sy(view, point.value);
+        const whisker = layers.uncertainty && Number.isFinite(point.low) && Number.isFinite(point.high)
+          ? `<line class="climate-whisker" x1="${x}" y1="${sy(view, point.high)}" x2="${x}" y2="${sy(view, point.low)}"/>
+             <line class="climate-whisker-cap" x1="${x - 10}" y1="${sy(view, point.high)}" x2="${x + 10}" y2="${sy(view, point.high)}"/>
+             <line class="climate-whisker-cap" x1="${x - 10}" y1="${sy(view, point.low)}" x2="${x + 10}" y2="${sy(view, point.low)}"/>`
+          : "";
+        return `<g class="climate-assessed-point">${whisker}<circle cx="${x}" cy="${y}" r="8"/></g>`;
+      }).join("")
     : "";
 
   const callouts = layers.callouts
@@ -104,13 +117,10 @@ export function renderClimateChart(view, layers, timelineItems = []) {
     .filter((item) => timelineItemIsVisible(view, item))
     .map((item, index) => {
       const x = sx(view, climateXForTimelineItem(view, item));
-      const labelY = SVG_H - PAD.bottom - 10 - (index % 4) * 24;
-      const anchor = x > SVG_W - 190 ? "end" : "start";
-      const dx = anchor === "end" ? -7 : 7;
       return `<g class="climate-event-marker">
         <line x1="${x}" y1="${PAD.top}" x2="${x}" y2="${SVG_H - PAD.bottom}"/>
-        <circle cx="${x}" cy="${SVG_H - PAD.bottom}" r="5"/>
-        <text text-anchor="${anchor}" x="${x + dx}" y="${labelY}">${item.name} · ${formatTimelineItemDate(item)}</text>
+        <circle cx="${x}" cy="${SVG_H - PAD.bottom}" r="10"/>
+        <text text-anchor="middle" x="${x}" y="${SVG_H - PAD.bottom + 4}">${index + 1}</text>
       </g>`;
     })
     .join("");
@@ -128,8 +138,8 @@ export function renderClimateChart(view, layers, timelineItems = []) {
       <text class="climate-axis-title" x="20" y="${SVG_H / 2}" transform="rotate(-90 20 ${SVG_H / 2})">Atmospheric CO₂ (ppm)</text>
       ${context}
       ${uncertainty}
-      <path class="climate-area" d="${areaPath(view)}"/>
-      <path class="climate-line" d="${linePath(view)}"/>
+      ${view.connectPoints === false ? "" : `<path class="climate-area" d="${areaPath(view)}"/><path class="climate-line" d="${linePath(view)}"/>`}
+      ${assessedPoints}
       ${callouts}
       ${timelineMarkers}
       ${xLabels}
@@ -141,6 +151,9 @@ export function renderClimateExperience(state) {
   const view = getClimateView(state.viewId);
   const timelineItems = state.contextItems ?? [];
   const visibleTimelineItems = timelineItems.filter((item) => timelineItemIsVisible(view, item));
+  const overlayLegend = visibleTimelineItems.length
+    ? `<ol class="climate-overlay-legend" aria-label="Visible timeline overlay legend">${visibleTimelineItems.map((item) => `<li><span>${visibleTimelineItems.indexOf(item) + 1}</span><strong>${item.name}</strong><small>${formatTimelineItemDate(item)}</small></li>`).join("")}</ol>`
+    : "";
   const indicators = state.layers.indicators
     ? `<section class="climate-indicators" aria-label="Observed climate indicators">${CLIMATE_INDICATORS.map((indicator) => `
         <article class="climate-indicator">
@@ -196,10 +209,14 @@ export function renderClimateExperience(state) {
           <div><span>${view.rangeLabel}</span><strong>CO₂ concentration over time</strong></div>
           <div class="climate-figure-actions">
             <small>Vertical scale changes between views; values remain labeled in ppm.</small>
-            <button type="button" data-climate-export="svg">Export SVG</button>
+            <div>
+              <button type="button" data-climate-export="svg">Chart SVG</button>
+              <button type="button" data-climate-export="html">Full view HTML</button>
+            </div>
           </div>
         </header>
         <div class="climate-chart-scroll">${renderClimateChart(view, state.layers, timelineItems)}</div>
+        ${overlayLegend}
         <p class="climate-takeaway">${view.takeaway}</p>
       </section>
       ${indicators}

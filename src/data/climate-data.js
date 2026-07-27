@@ -87,6 +87,33 @@ export const CLIMATE_VIEWS = [
     sources: ["noaaIce", "noaaModern", "ipccAr6"],
   },
   {
+    id: "comparable",
+    label: "Last comparable",
+    kicker: ">2 million years",
+    title: "Today versus the last comparable atmosphere",
+    rangeLabel: "More than 2 million years ago–present",
+    description: "The IPCC can constrain the comparison, but not name an exact matching year. This view keeps that uncertainty visible.",
+    domain: [3.5, 0],
+    xLabels: ["3.5 Ma", "3 Ma", "2 Ma", "1 Ma", "Now"],
+    co2Max: 500,
+    connectPoints: false,
+    co2: [
+      { x: 3.2, value: 370, low: 290, high: 450, kind: "marine proxy" },
+      { x: 0, value: 427.83, low: 427.5, high: 428.1, kind: "instrument" },
+    ],
+    context: [
+      { start: 3.5, end: 0, label: "Genus Homo" },
+      { start: 0.3, end: 0, label: "Homo sapiens" },
+      { start: 0.012, end: 0, label: "Agriculture" },
+    ],
+    callouts: [
+      { x: 3.2, value: 370, label: "Mid-Pliocene: 290–450 ppm" },
+      { x: 0, value: 427.83, label: "2026 ≈428 ppm" },
+    ],
+    takeaway: "Comparable concentration does not mean comparable world. The last assessed analogue predates Homo sapiens, agriculture, cities, and modern coastlines.",
+    sources: ["ipccAr6", "noaaModern"],
+  },
+  {
     id: "deep-time",
     label: "Deep-time Earth",
     kicker: "450 million years",
