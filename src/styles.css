@@ -295,13 +295,17 @@ input[type="text"]:focus {
   color: var(--accent);
 }
 
-.chips,
-.presets {
+.chips {
   display: flex;
   min-height: 1.65rem;
   flex-wrap: wrap;
   gap: 0.35rem;
   align-items: center;
+}
+
+.presets {
+  position: relative;
+  min-height: 1.85rem;
 }
 
 .empty-chip,
@@ -364,6 +368,86 @@ input[type="text"]:focus {
   border-color: var(--violet);
   background: rgba(185, 156, 255, 0.1);
   color: var(--violet);
+}
+
+.preset-drawer {
+  width: 100%;
+}
+
+.preset-drawer > summary {
+  display: flex;
+  width: fit-content;
+  min-height: 1.85rem;
+  cursor: pointer;
+  align-items: center;
+  gap: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(16, 17, 20, 0.9);
+  color: var(--text);
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 0.3rem 0.7rem;
+  list-style: none;
+}
+
+.preset-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+.preset-drawer > summary::after {
+  content: "▾";
+  color: var(--cyan);
+  transition: transform 0.15s;
+}
+
+.preset-drawer[open] > summary::after {
+  transform: rotate(180deg);
+}
+
+.preset-drawer > summary small {
+  color: var(--quiet);
+  font-size: 0.52rem;
+  font-weight: 400;
+}
+
+.preset-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 110;
+  display: grid;
+  width: min(44rem, calc(100vw - 1.6rem));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  background: #121418;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.52);
+  padding: 0.85rem;
+}
+
+.preset-group h3 {
+  margin-bottom: 0.45rem;
+  color: var(--quiet);
+  font-size: 0.54rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.preset-group > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.preset-menu footer {
+  display: flex;
+  grid-column: 1 / -1;
+  gap: 0.5rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.65rem;
 }
 
 .preset-item {
@@ -1167,6 +1251,37 @@ input[type="text"]:focus {
   text-align: right;
 }
 
+.climate-event-heading-actions {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.climate-event-heading-actions button {
+  min-height: 2rem;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 0 0.65rem;
+  text-transform: uppercase;
+}
+
+.climate-event-heading-actions button:hover:not(:disabled) {
+  border-color: var(--accent-hot);
+  color: var(--accent-hot);
+}
+
+.climate-event-heading-actions button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
 .climate-event-search {
   position: relative;
 }
@@ -1650,11 +1765,20 @@ input[type="text"]:focus {
   }
 
   .input-row {
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) auto auto;
   }
 
   .btn.secondary {
-    display: none;
+    display: block;
+    padding-inline: 0.6rem;
+  }
+
+  .preset-menu {
+    right: auto;
+    left: 0;
+    grid-template-columns: 1fr;
+    max-height: min(62vh, 30rem);
+    overflow-y: auto;
   }
 
   .timeline-readout {
@@ -1794,6 +1918,11 @@ input[type="text"]:focus {
     display: block;
     margin-top: 0.35rem;
     text-align: left;
+  }
+
+  .climate-event-heading-actions {
+    justify-content: space-between;
+    margin-top: 0.45rem;
   }
 
   .climate-figure > header {
