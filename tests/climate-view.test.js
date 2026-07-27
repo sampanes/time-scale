@@ -13,7 +13,7 @@ const allLayers = {
 };
 
 test("climate views cover modern, ice-core, and deep-time scales", () => {
-  assert.deepEqual(CLIMATE_VIEWS.map((view) => view.id), ["industrial", "ice-ages", "deep-time"]);
+  assert.deepEqual(CLIMATE_VIEWS.map((view) => view.id), ["industrial", "ice-ages", "comparable", "deep-time"]);
   assert.equal(getClimateView("missing").id, "industrial");
   assert.ok(getClimateView("ice-ages").co2.length > 10);
 });
@@ -48,8 +48,18 @@ test("timeline entries overlay at their true dates and report out-of-range selec
   const state = { viewId: "ice-ages", layers: allLayers, contextItems: [jesus, hominins] };
   const html = renderClimateExperience(state);
 
-  assert.match(html, /Jesus of Nazareth · 4 BCE/);
+  assert.match(html, /Jesus of Nazareth/);
+  assert.match(html, /4 BCE/);
   assert.match(html, /1 of 2 selected items visible/);
   assert.match(html, /data-remove-climate-event="first-hominins" class="outside-range"/);
   assert.match(html, /data-climate-export="svg"/);
+  assert.match(html, /data-climate-export="html"/);
+});
+
+test("last-comparable view shows assessed points without inventing a continuous curve", () => {
+  const view = getClimateView("comparable");
+  const html = renderClimateChart(view, allLayers);
+  assert.match(html, /climate-assessed-point/);
+  assert.match(html, /climate-whisker/);
+  assert.doesNotMatch(html, /class="climate-line"/);
 });

@@ -1036,7 +1036,7 @@ input[type="text"]:focus {
 .climate-views {
   display: grid;
   max-width: 78rem;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.45rem;
   margin: 0 auto;
 }
@@ -1329,6 +1329,12 @@ input[type="text"]:focus {
   align-items: center;
 }
 
+.climate-figure-actions > div {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.35rem;
+}
+
 .climate-figure-actions button {
   min-height: 2.15rem;
   flex: 0 0 auto;
@@ -1402,6 +1408,19 @@ input[type="text"]:focus {
   vector-effect: non-scaling-stroke;
 }
 
+.climate-whisker,
+.climate-whisker-cap {
+  stroke: var(--violet);
+  stroke-width: 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.climate-assessed-point circle {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 4;
+}
+
 .climate-context rect {
   fill: rgba(114, 213, 200, 0.12);
   stroke: rgba(114, 213, 200, 0.34);
@@ -1454,12 +1473,52 @@ input[type="text"]:focus {
 }
 
 .climate-event-marker text {
-  fill: #dfd2ff;
-  paint-order: stroke;
-  stroke: rgba(5, 5, 7, 0.92);
-  stroke-width: 4px;
+  fill: #100a1d;
   font-family: "Space Mono", monospace;
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.climate-overlay-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.35rem;
+  border-top: 1px solid var(--line);
+  list-style: none;
+  padding: 0.7rem 1rem;
+}
+
+.climate-overlay-legend li {
+  display: grid;
+  grid-template-columns: 1.4rem minmax(0, 1fr) auto;
+  gap: 0.45rem;
+  align-items: center;
+  min-width: 0;
+  color: var(--text);
+  font-size: 0.58rem;
+}
+
+.climate-overlay-legend li > span {
+  display: grid;
+  width: 1.3rem;
+  height: 1.3rem;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--violet);
+  color: #100a1d;
+  font-size: 0.52rem;
+  font-weight: 700;
+}
+
+.climate-overlay-legend strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.climate-overlay-legend small {
+  color: var(--quiet);
+  font-size: 0.5rem;
 }
 
 .climate-takeaway {
@@ -1749,8 +1808,8 @@ input[type="text"]:focus {
 
   .climate-figure-actions {
     max-width: none;
-    justify-content: space-between;
-    align-items: end;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .climate-figure-actions small {
@@ -1759,6 +1818,7 @@ input[type="text"]:focus {
 
   .climate-figure-actions button {
     min-height: 2.6rem;
+    flex: 1;
   }
 
   .climate-chart {

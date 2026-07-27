@@ -35,6 +35,7 @@ const climateState = {
     sources: true,
   },
 };
+const CLIMATE_LAYER_IDS = ["context", "callouts", "uncertainty", "indicators", "sources"];
 
 function getClimateContextItems() {
   return climateState.contextIds.map((id) => findTimelineItem(id)).filter(Boolean);
@@ -88,6 +89,8 @@ function exportClimateSvg() {
     .climate-area { fill: #f4b84a; fill-opacity: .10; }
     .climate-line { fill: none; stroke: #f4b84a; stroke-linecap: round; stroke-linejoin: round; stroke-width: 5; }
     .climate-uncertainty { fill: #b99cff; fill-opacity: .18; stroke: #b99cff; stroke-opacity: .55; stroke-dasharray: 5 6; stroke-width: 2; }
+    .climate-whisker, .climate-whisker-cap { stroke: #b99cff; stroke-width: 3; }
+    .climate-assessed-point circle { fill: #f4b84a; stroke: #080a0c; stroke-width: 4; }
     .climate-context rect { fill: #72d5c8; fill-opacity: .12; stroke: #72d5c8; stroke-opacity: .4; }
     .climate-context.context-1 rect { fill: #b99cff; fill-opacity: .11; stroke: #b99cff; }
     .climate-context.context-2 rect { fill: #f4b84a; fill-opacity: .10; stroke: #f4b84a; }
@@ -97,7 +100,7 @@ function exportClimateSvg() {
     .climate-callout text { fill: #f1eee7; font: 12px monospace; }
     .climate-event-marker line { stroke: #b99cff; stroke-dasharray: 2 5; stroke-width: 2; }
     .climate-event-marker circle { fill: #b99cff; stroke: #080a0c; stroke-width: 3; }
-    .climate-event-marker text { fill: #dfd2ff; paint-order: stroke; stroke: #080a0c; stroke-width: 4px; font: 11px monospace; }
+    .climate-event-marker text { fill: #100a1d; font: bold 10px monospace; }
   `;
   clone.prepend(exportStyles);
 
@@ -106,21 +109,59 @@ function exportClimateSvg() {
   clone.prepend(metadata);
 
   const svgText = new XMLSerializer().serializeToString(clone);
-  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+  const overlaySuffix = climateState.contextIds.length ? `-${climateState.contextIds.length}-overlays` : "";
+  downloadTextFile(svgText, `to-scale-climate-${climateState.viewId}${overlaySuffix}.svg`, "image/svg+xml;charset=utf-8");
+  showClimateExportStatus("svg", "Saved SVG");
+}
+
+function downloadTextFile(contents, filename, type) {
+  const blob = new Blob([contents], { type });
   const downloadUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");
-  const overlaySuffix = climateState.contextIds.length ? `-${climateState.contextIds.length}-overlays` : "";
   link.href = downloadUrl;
-  link.download = `to-scale-climate-${climateState.viewId}${overlaySuffix}.svg`;
+  link.download = filename;
   document.body.append(link);
   link.click();
   link.remove();
-  const exportButton = elements.timelineContainer.querySelector("[data-climate-export='svg']");
+  setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+}
+
+function showClimateExportStatus(kind, label) {
+  const exportButton = elements.timelineContainer.querySelector(`[data-climate-export='${kind}']`);
   if (exportButton) {
-    exportButton.textContent = "Saved SVG";
+    exportButton.textContent = label;
     exportButton.classList.add("exported");
   }
-  setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+}
+
+function exportClimateHtml() {
+  const experience = elements.timelineContainer.querySelector(".climate-experience");
+  if (!experience) return;
+
+  const clone = experience.cloneNode(true);
+  clone.querySelectorAll(".climate-event-results").forEach((element) => element.remove());
+  clone.querySelectorAll("input, button").forEach((element) => {
+    element.disabled = true;
+    element.setAttribute("aria-disabled", "true");
+  });
+
+  const localCss = [...document.styleSheets].map((sheet) => {
+    try {
+      return [...sheet.cssRules].map((rule) => rule.cssText).join("\n");
+    } catch {
+      return "";
+    }
+  }).join("\n");
+
+  const title = `To Scale: Climate — ${climateState.viewId}`;
+  const html = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title}</title><style>${localCss}
+html,body{height:auto;overflow:auto}.climate-experience{min-height:100vh}.climate-event-search{display:none}
+</style></head><body>${clone.outerHTML}</body></html>`;
+  const overlaySuffix = climateState.contextIds.length ? `-${climateState.contextIds.length}-overlays` : "";
+  downloadTextFile(html, `to-scale-climate-${climateState.viewId}${overlaySuffix}.html`, "text/html;charset=utf-8");
+  showClimateExportStatus("html", "Saved HTML");
 }
 
 const pointerState = {
@@ -695,6 +736,12 @@ function readInitialUrlState() {
   uiState.mode = params.get("mode") === "climate" ? "climate" : "timeline";
   climateState.viewId = params.get("climate") || climateState.viewId;
   climateState.contextIds = (params.get("overlays") || "").split(",").filter((id) => Boolean(findTimelineItem(id)));
+  if (params.has("layers")) {
+    const enabledLayers = new Set((params.get("layers") || "").split(",").filter(Boolean));
+    CLIMATE_LAYER_IDS.forEach((id) => {
+      climateState.layers[id] = enabledLayers.has(id);
+    });
+  }
   const itemIds = (params.get("items") || "").split(",").filter(Boolean);
   selectedItems = itemIds.map((id) => findTimelineItem(id)).filter(Boolean);
 
@@ -727,6 +774,7 @@ function writeUrlState() {
     params.set("mode", "climate");
     params.set("climate", climateState.viewId);
     if (climateState.contextIds.length) params.set("overlays", climateState.contextIds.join(","));
+    params.set("layers", CLIMATE_LAYER_IDS.filter((id) => climateState.layers[id]).join(","));
   }
 
   if (selectedItems.length) {
@@ -1134,6 +1182,12 @@ function bindEvents() {
       return;
     }
 
+    const climateHtmlExportButton = event.target.closest("[data-climate-export='html']");
+    if (climateHtmlExportButton) {
+      exportClimateHtml();
+      return;
+    }
+
     const addClimateEventButton = event.target.closest("[data-add-climate-event]");
     if (addClimateEventButton) {
       addClimateContextItem(addClimateEventButton.dataset.addClimateEvent);
@@ -1180,6 +1234,7 @@ function bindEvents() {
     if (!layerInput) return;
     climateState.layers[layerInput.dataset.climateLayer] = layerInput.checked;
     renderTimeline();
+    scheduleUrlStateUpdate();
   });
 
   elements.timelineContainer.addEventListener("pointerover", (event) => {
