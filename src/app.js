@@ -54,6 +54,13 @@ function removeClimateContextItem(id) {
   scheduleUrlStateUpdate();
 }
 
+function clearClimateContextItems() {
+  if (!climateState.contextIds.length) return;
+  climateState.contextIds = [];
+  renderTimeline();
+  scheduleUrlStateUpdate();
+}
+
 function renderClimateEventResults(input) {
   const resultsElement = elements.timelineContainer.querySelector(".climate-event-results");
   if (!resultsElement) return;
@@ -402,42 +409,44 @@ function renderPresets() {
   const hidden = getHiddenPresets();
   const customs = getCustomPresets();
   const visibleBuiltins = PRESETS.filter((p) => !hidden.includes(p.id));
+  const groups = [
+    { label: "Deep time", ids: ["eons", "paleozoic", "mesozoic", "recent-3"] },
+    { label: "Human history", ids: ["human-civilization", "indigenous-history", "greek-wars", "domestication", "renaissances"] },
+    { label: "Cosmos & stories", ids: ["cosmic", "fictional-timelines"] },
+  ];
 
-  const builtinsHtml = visibleBuiltins
-    .map(
-      (p) => `
+  const renderPresetItem = (preset, deleteTitle) => `
     <div class="preset-item">
-      <button class="preset-btn" type="button" data-preset-id="${p.id}">${escapeHtml(p.label)}</button>
-      <button class="preset-delete" type="button" data-delete-id="${p.id}" title="Hide preset">×</button>
-    </div>
-  `,
-    )
-    .join("");
+      <button class="preset-btn" type="button" data-preset-id="${preset.id}">${escapeHtml(preset.label)}</button>
+      <button class="preset-delete" type="button" data-delete-id="${preset.id}" title="${deleteTitle}" aria-label="${deleteTitle}: ${escapeHtml(preset.label)}">×</button>
+    </div>`;
 
-  const customsHtml = customs
-    .map(
-      (p) => `
-    <div class="preset-item">
-      <button class="preset-btn" type="button" data-preset-id="${p.id}">${escapeHtml(p.label)}</button>
-      <button class="preset-delete" type="button" data-delete-id="${p.id}" title="Delete preset">×</button>
-    </div>
-  `,
-    )
-    .join("");
+  const builtinsHtml = groups.map((group) => {
+    const presets = group.ids.map((id) => visibleBuiltins.find((preset) => preset.id === id)).filter(Boolean);
+    if (!presets.length) return "";
+    return `<section class="preset-group"><h3>${group.label}</h3><div>${presets.map((preset) => renderPresetItem(preset, "Hide preset")).join("")}</div></section>`;
+  }).join("");
+
+  const customsHtml = customs.map((preset) => renderPresetItem(preset, "Delete preset")).join("");
 
   elements.presetControls.innerHTML = `
-    <span class="preset-label">Presets</span>
-    ${builtinsHtml}
-    ${customsHtml}
-    <button class="btn-text" type="button" data-action="save-preset" ${
-      selectedItems.length === 0 ? 'disabled style="opacity: 0.3; cursor: default;"' : ""
-    }>+ Save current</button>
-    ${
-      hidden.length > 0 || customs.length > 0
-        ? `<button class="btn-text" type="button" data-action="reset-presets">Reset all</button>`
-        : ""
-    }
-  `;
+    <details class="preset-drawer">
+      <summary><span>Presets</span><small>${visibleBuiltins.length + customs.length} available</small></summary>
+      <div class="preset-menu">
+        ${builtinsHtml}
+        ${customsHtml ? `<section class="preset-group custom-presets"><h3>My presets</h3><div>${customsHtml}</div></section>` : ""}
+        <footer>
+          <button class="btn-text" type="button" data-action="save-preset" ${
+            selectedItems.length === 0 ? 'disabled style="opacity: 0.3; cursor: default;"' : ""
+          }>+ Save current</button>
+          ${
+            hidden.length > 0 || customs.length > 0
+              ? `<button class="btn-text" type="button" data-action="reset-presets">Restore defaults</button>`
+              : ""
+          }
+        </footer>
+      </div>
+    </details>`;
 }
 
 function openAutocomplete(results) {
@@ -1197,6 +1206,12 @@ function bindEvents() {
     const removeClimateEventButton = event.target.closest("[data-remove-climate-event]");
     if (removeClimateEventButton) {
       removeClimateContextItem(removeClimateEventButton.dataset.removeClimateEvent);
+      return;
+    }
+
+    const clearClimateEventsButton = event.target.closest("[data-clear-climate-events]");
+    if (clearClimateEventsButton) {
+      clearClimateContextItems();
       return;
     }
 

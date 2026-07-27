@@ -54,6 +54,7 @@ test("timeline entries overlay at their true dates and report out-of-range selec
   assert.match(html, /data-remove-climate-event="first-hominins" class="outside-range"/);
   assert.match(html, /data-climate-export="svg"/);
   assert.match(html, /data-climate-export="html"/);
+  assert.match(html, /data-clear-climate-events/);
 });
 
 test("last-comparable view shows assessed points without inventing a continuous curve", () => {

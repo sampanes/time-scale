@@ -192,7 +192,10 @@ export function renderClimateExperience(state) {
       <section class="climate-event-picker" aria-label="Timeline overlays">
         <div class="climate-event-heading">
           <div><span>Timeline overlays</span><strong>Place any event on the climate record</strong></div>
-          <small>${visibleTimelineItems.length} of ${timelineItems.length} selected items visible in this range</small>
+          <div class="climate-event-heading-actions">
+            <small>${visibleTimelineItems.length} of ${timelineItems.length} selected items visible in this range</small>
+            <button type="button" data-clear-climate-events ${timelineItems.length ? "" : "disabled"}>Clear all</button>
+          </div>
         </div>
         <div class="climate-event-search">
           <input type="search" data-climate-event-search placeholder="Search people, species, eras, events…" autocomplete="off" aria-label="Search timeline overlays">

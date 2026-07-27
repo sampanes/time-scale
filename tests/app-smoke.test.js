@@ -115,7 +115,10 @@ test("app boot wires default presets, autocomplete, and add", async () => {
   await import("../src/app.js");
 
   assert.equal(elements.searchCount.textContent, `${TIMELINE_ITEMS.length.toLocaleString()} searchable events`);
-  assert.match(elements.presetControls.innerHTML, /Presets/);
+  assert.match(elements.presetControls.innerHTML, /preset-drawer/);
+  assert.match(elements.presetControls.innerHTML, /Deep time/);
+  assert.match(elements.presetControls.innerHTML, /Human history/);
+  assert.match(elements.presetControls.innerHTML, /Cosmos & stories/);
   assert.match(elements.timelineContainer.innerHTML, /empty-presets/);
 
   elements.searchInput.value = "hadean";
@@ -128,4 +131,8 @@ test("app boot wires default presets, autocomplete, and add", async () => {
 
   assert.match(elements.chips.innerHTML, /Hadean/);
   assert.match(elements.timelineContainer.innerHTML, /event-segment/);
+
+  elements.clearButton.listeners.click[0]();
+  assert.doesNotMatch(elements.chips.innerHTML, /Hadean/);
+  assert.match(elements.timelineContainer.innerHTML, /empty-presets/);
 });
