@@ -5,6 +5,7 @@ import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffset
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
 import { buildVerticalClimateViewModel, renderVerticalClimateLane } from "./lib/vertical-climate-view.js";
 import { CLIMATE_METRICS, DEFAULT_CLIMATE_METRIC_IDS } from "./data/climate-metrics.js";
+import { readFiniteUrlNumber } from "./lib/url-state.js";
 
 let selectedItems = [];
 let selectedDetailId = null;
@@ -785,11 +786,11 @@ function readInitialUrlState() {
   const detailId = params.get("selected");
   selectedDetailId = selectedItems.some((item) => item.id === detailId) ? detailId : null;
 
-  const pxPerMa = Number(params.get("zoom"));
-  const offsetY = Number(params.get("offset"));
-  if (Number.isFinite(pxPerMa) && pxPerMa > 0) viewState.pxPerMa = pxPerMa;
-  if (Number.isFinite(offsetY)) viewState.offsetY = offsetY;
-  if (selectedItems.length && Number.isFinite(pxPerMa) && Number.isFinite(offsetY)) {
+  const pxPerMa = readFiniteUrlNumber(params, "zoom");
+  const offsetY = readFiniteUrlNumber(params, "offset");
+  if (pxPerMa !== null && pxPerMa > 0) viewState.pxPerMa = pxPerMa;
+  if (offsetY !== null) viewState.offsetY = offsetY;
+  if (selectedItems.length && pxPerMa !== null && pxPerMa > 0 && offsetY !== null) {
     viewState.selectionKey = getSelectionKey();
   }
 
