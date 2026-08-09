@@ -11,6 +11,7 @@ let selectedItems = [];
 let selectedDetailId = null;
 let autocompleteIndex = -1;
 let activeClimateMetricIds = [...DEFAULT_CLIMATE_METRIC_IDS];
+let focusedClimateMetricId = DEFAULT_CLIMATE_METRIC_IDS[0];
 
 const viewState = {
   pxPerMa: 1,
@@ -608,20 +609,40 @@ function renderChips() {
 
 function renderClimateMetricControls() {
   if (!elements.climateMetricControls) return;
+  const selected = activeClimateMetricIds.map((id) => CLIMATE_METRICS.find((metric) => metric.id === id)).filter(Boolean);
+  const available = CLIMATE_METRICS.filter((metric) => !activeClimateMetricIds.includes(metric.id));
   elements.climateMetricControls.innerHTML = `
     <span class="climate-metric-label">Climate tracks</span>
-    ${CLIMATE_METRICS.map((metric) => {
-      const active = activeClimateMetricIds.includes(metric.id);
-      return `<button class="climate-metric-chip${active ? " active" : ""}" type="button" data-climate-metric="${metric.id}" aria-pressed="${active}" title="${escapeHtml(metric.label)}">${escapeHtml(metric.shortLabel)} <span aria-hidden="true">${active ? "×" : "+"}</span></button>`;
-    }).join("")}
+    ${selected.map((metric) => `
+      <span class="climate-metric-pill${metric.id === focusedClimateMetricId ? " focused" : ""}">
+        <button type="button" data-climate-focus="${metric.id}" aria-pressed="${metric.id === focusedClimateMetricId}" title="Show ${escapeHtml(metric.label)}">${escapeHtml(metric.shortLabel)}</button>
+        <button type="button" data-climate-remove="${metric.id}" aria-label="Remove ${escapeHtml(metric.label)}">&times;</button>
+      </span>`).join("")}
+    ${available.map((metric) => `<button class="climate-metric-add" type="button" data-climate-add="${metric.id}" title="Add ${escapeHtml(metric.label)}">+ ${escapeHtml(metric.shortLabel)}</button>`).join("")}
   `;
 }
 
-function toggleClimateMetric(id) {
-  if (!CLIMATE_METRICS.some((metric) => metric.id === id)) return;
-  activeClimateMetricIds = activeClimateMetricIds.includes(id)
-    ? activeClimateMetricIds.filter((metricId) => metricId !== id)
-    : [...activeClimateMetricIds, id];
+function focusClimateMetric(id) {
+  if (!activeClimateMetricIds.includes(id)) return;
+  focusedClimateMetricId = id;
+  renderClimateMetricControls();
+  renderTimeline();
+  scheduleUrlStateUpdate();
+}
+
+function addClimateMetric(id) {
+  if (!CLIMATE_METRICS.some((metric) => metric.id === id) || activeClimateMetricIds.includes(id)) return;
+  activeClimateMetricIds = [...activeClimateMetricIds, id];
+  focusedClimateMetricId = id;
+  renderClimateMetricControls();
+  renderTimeline();
+  scheduleUrlStateUpdate();
+}
+
+function removeClimateMetric(id) {
+  if (!activeClimateMetricIds.includes(id)) return;
+  activeClimateMetricIds = activeClimateMetricIds.filter((metricId) => metricId !== id);
+  if (focusedClimateMetricId === id) focusedClimateMetricId = activeClimateMetricIds[0] ?? null;
   renderClimateMetricControls();
   renderTimeline();
   scheduleUrlStateUpdate();
@@ -772,6 +793,8 @@ function readInitialUrlState() {
     const requestedMetrics = params.get("metrics") === "none" ? [] : params.get("metrics").split(",");
     activeClimateMetricIds = requestedMetrics.filter((id) => CLIMATE_METRICS.some((metric) => metric.id === id));
   }
+  const requestedFocus = params.get("metric");
+  focusedClimateMetricId = activeClimateMetricIds.includes(requestedFocus) ? requestedFocus : activeClimateMetricIds[0] ?? null;
   climateState.viewId = params.get("climate") || climateState.viewId;
   climateState.contextIds = (params.get("overlays") || "").split(",").filter((id) => Boolean(findTimelineItem(id)));
   if (params.has("layers")) {
@@ -811,6 +834,7 @@ function writeUrlState() {
   if (uiState.mode === "climate") {
     params.set("mode", "climate");
     params.set("metrics", activeClimateMetricIds.length ? activeClimateMetricIds.join(",") : "none");
+    if (focusedClimateMetricId) params.set("metric", focusedClimateMetricId);
   }
 
   if (selectedItems.length) {
@@ -883,7 +907,7 @@ function renderTimeline() {
         range: viewModel.range,
         pxPerMa: viewState.pxPerMa,
         offsetY: renderOffsetY,
-        activeMetricIds: activeClimateMetricIds,
+        focusedMetricId: focusedClimateMetricId,
       }), viewportHeight)
     : "";
   const climateClass = uiState.mode === "climate" ? " integrated-climate" : "";
@@ -971,7 +995,8 @@ function getTimelineViewportHeight() {
 
 function fitSelectionToViewport(range, viewportHeight) {
   const spanMa = Math.max(range.viewMax - range.viewMin, 1e-9);
-  const targetHeight = viewportHeight * 0.86;
+  const compactClimate = uiState.mode === "climate" && window.innerWidth <= 760;
+  const targetHeight = viewportHeight * (compactClimate ? 0.66 : 0.86);
   viewState.pxPerMa = clamp(targetHeight / spanMa, ZOOM_BOUNDS.minPxPerMa, ZOOM_BOUNDS.maxPxPerMa);
   viewState.offsetY = (viewportHeight - getContentHeight(range, viewState.pxPerMa)) / 2;
 }
@@ -1190,8 +1215,12 @@ function bindEvents() {
   });
 
   elements.climateMetricControls?.addEventListener("click", (event) => {
-    const metricButton = event.target.closest("[data-climate-metric]");
-    if (metricButton) toggleClimateMetric(metricButton.dataset.climateMetric);
+    const focusButton = event.target.closest("[data-climate-focus]");
+    const addButton = event.target.closest("[data-climate-add]");
+    const removeButton = event.target.closest("[data-climate-remove]");
+    if (focusButton) focusClimateMetric(focusButton.dataset.climateFocus);
+    else if (addButton) addClimateMetric(addButton.dataset.climateAdd);
+    else if (removeButton) removeClimateMetric(removeButton.dataset.climateRemove);
   });
 
   elements.presetControls.addEventListener("click", (event) => {
@@ -1332,6 +1361,28 @@ function bindEvents() {
   });
 }
 
+function bindTimelineMeasurementUpdates() {
+  let lastHeight = elements.timelineContainer.clientHeight;
+  const refitIfHeightChanged = () => {
+    const nextHeight = elements.timelineContainer.clientHeight;
+    if (Math.abs(nextHeight - lastHeight) < 1) return;
+    lastHeight = nextHeight;
+    viewState.selectionKey = "";
+    renderTimeline();
+  };
+
+  if (typeof ResizeObserver === "function") {
+    const observer = new ResizeObserver(refitIfHeightChanged);
+    observer.observe(elements.timelineContainer);
+  }
+
+  if (document.fonts?.ready) {
+    document.fonts.ready.then(() => {
+      viewState.selectionKey = "";
+      renderTimeline();
+    });
+  }
+}
 function beginPointerInteraction(event) {
   if (!hasSelection() || isInteractiveTarget(event.target)) return;
   if (event.pointerType === "mouse" && event.button !== 0) return;
@@ -1454,6 +1505,7 @@ setMode(uiState.mode);
 renderSearchCount();
 renderPresets();
 bindEvents();
+bindTimelineMeasurementUpdates();
 renderChips();
 renderClimateMetricControls();
 renderTimeline();
