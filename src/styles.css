@@ -2164,3 +2164,200 @@ input[type="text"]:focus {
     display: block;
   }
 }
+/* Focused climate track: selected metrics stay available while one readable scale is shown. */
+.climate-metric-pill {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid rgba(114, 213, 200, 0.34);
+  border-radius: 999px;
+  background: rgba(114, 213, 200, 0.08);
+}
+
+.climate-metric-pill.focused {
+  border-color: var(--accent);
+  background: rgba(244, 184, 74, 0.13);
+  box-shadow: 0 0 0 1px rgba(244, 184, 74, 0.12);
+}
+
+.climate-metric-pill button,
+.climate-metric-add {
+  min-height: 1.65rem;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: 0.61rem "Space Mono", monospace;
+}
+
+.climate-metric-pill [data-climate-focus] {
+  padding: 0.24rem 0.2rem 0.24rem 0.55rem;
+}
+
+.climate-metric-pill [data-climate-remove] {
+  width: 1.55rem;
+  color: var(--quiet);
+}
+
+.climate-metric-pill.focused [data-climate-focus],
+.climate-metric-pill button:hover,
+.climate-metric-add:hover {
+  color: var(--text);
+}
+
+.climate-metric-pill [data-climate-remove]:hover {
+  background: rgba(255, 107, 74, 0.16);
+  color: var(--accent-hot);
+}
+
+.climate-metric-add {
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  padding: 0.24rem 0.55rem;
+}
+
+.climate-literal-chart {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.climate-lens {
+  position: absolute;
+  top: 4.4rem;
+  right: 0.55rem;
+  left: 0.55rem;
+  z-index: 6;
+  height: min(48%, 20rem);
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--track-color) 45%, transparent);
+  border-radius: 8px;
+  background: rgba(5, 5, 7, 0.9);
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.34);
+  pointer-events: none;
+}
+
+.climate-lens-heading {
+  position: absolute;
+  right: 0.45rem;
+  left: 0.45rem;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.4rem;
+  color: var(--muted);
+  font-size: 0.46rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.climate-lens-heading {
+  top: 0.4rem;
+}
+
+.climate-lens-heading strong {
+  color: var(--track-color);
+}
+
+
+.climate-lens-year {
+  position: absolute;
+  left: 0.45rem;
+  z-index: 2;
+  color: var(--muted);
+  font-size: 0.46rem;
+}
+
+.climate-lens-year.oldest { top: 1.5rem; }
+.climate-lens-year.newest { bottom: 0.35rem; }
+.climate-lens svg {
+  position: absolute;
+  inset: 1.4rem 0.4rem 1.25rem;
+  width: calc(100% - 0.8rem);
+  height: calc(100% - 2.65rem);
+}
+
+.climate-lens line {
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-dasharray: 3 7;
+  vector-effect: non-scaling-stroke;
+}
+
+.climate-lens path {
+  fill: none;
+  stroke: var(--track-color);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.vertical-climate-evidence,
+.vertical-climate-note,
+.vertical-climate-sources {
+  position: absolute;
+  right: 0.55rem;
+  left: 0.55rem;
+  z-index: 7;
+  font-size: 0.46rem;
+}
+
+.vertical-climate-evidence {
+  bottom: 3.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  color: var(--muted);
+}
+
+.vertical-climate-evidence span::before {
+  content: "";
+  display: inline-block;
+  width: 0.5rem;
+  height: 2px;
+  margin-right: 0.2rem;
+  background: var(--track-color, var(--cyan));
+  vertical-align: middle;
+}
+
+.vertical-climate-evidence .proxy::before { background: var(--violet); }
+.vertical-climate-evidence .modern::before { background: var(--accent-hot); }
+
+.vertical-climate-note {
+  bottom: 1.75rem;
+  max-height: 1.35rem;
+  overflow: hidden;
+  color: var(--quiet);
+  line-height: 1.35;
+}
+
+.vertical-climate-sources {
+  bottom: 0.55rem;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vertical-climate-sources a {
+  display: block;
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 760px) {
+  .app-shell.climate-mode .vertical-climate-heading,
+  .app-shell.climate-mode .vertical-climate-scale {
+    left: 2.5rem;
+  }
+
+  .climate-lens {
+    top: 4.8rem;
+    height: min(45%, 16rem);
+  }
+
+  .vertical-climate-note {
+    font-size: 0.43rem;
+  }
+}
