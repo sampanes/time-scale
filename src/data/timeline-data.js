@@ -126,6 +126,7 @@ export const TIMELINE_ITEMS = [
   { id: "first-hominids", name: "First Great Apes", type: "event", start_ma: 15, end_ma: 15, aliases: ["great apes", "hominids", "hominidae", "apes"] },
   { id: "first-hominins", name: "First Hominins", type: "event", start_ma: 7, end_ma: 7, aliases: ["hominins", "bipedal", "australopithecus", "early humans"] },
   { id: "first-stone-tools", name: "First Stone Tools (Lomekwi)", type: "event", start_ma: 3.3, end_ma: 3.3, aliases: ["stone tools", "lomekwi", "tool use", "early tools"] },
+  { id: "stone-age", name: "The Stone Age", type: "event", start_ma: 3.3, end_ma: 0.0053, aliases: ["stone age", "paleolithic", "old stone age", "mesolithic", "neolithic era", "prehistory"], note: "Spans the Paleolithic, Mesolithic, and Neolithic - the long era of stone tool-making that ends conventionally with the spread of bronze metallurgy." },
   { id: "homo-erectus", name: "Homo Erectus", type: "event", start_ma: 1.89, end_ma: 0.11, aliases: ["homo erectus", "erectus"] },
   { id: "first-fire", name: "First Controlled Fire", type: "event", start_ma: 1, end_ma: 1, aliases: ["controlled fire", "first fire", "fire use", "wonderwerk cave", "cooking"], wikiTitle: "Control of fire by early humans" },
   { id: "first-humans", name: "Homo Sapiens", type: "event", start_ma: 0.3, end_ma: 0, aliases: ["homo sapiens", "humans", "first humans", "modern humans", "people"] },
@@ -374,10 +375,11 @@ export const TIMELINE_ITEMS = [
   // Human History & Civilization
   { id: "invention-wheel", name: "Invention of the Wheel", type: "event", start_ma: 0.0056, end_ma: 0.0053, aliases: ["wheel", "invention of the wheel", "potter's wheel", "wheeled vehicle"], wikiTitle: "Wheel" },
   { id: "first-writing", name: "First Writing (Cuneiform)", type: "event", start_ma: 0.0054, end_ma: 0.0054, aliases: ["writing", "cuneiform", "sumer"] },
+  { id: "bronze-age", name: "The Bronze Age", type: "event", start_ma: 0.0053, end_ma: 0.0032, aliases: ["bronze age", "bronze age collapse", "early civilization", "bronze metallurgy"], note: "Rise of bronze metallurgy, writing, and the first cities and empires in Mesopotamia, Egypt, the Indus Valley, and China. Ends conventionally with the Late Bronze Age Collapse." },
   { id: "unification-egypt", name: "Unification of Egypt", type: "event", start_ma: 0.0051, end_ma: 0.0051, aliases: ["egypt", "pharaohs"] },
   { id: "great-pyramid", name: "Great Pyramid of Giza", type: "event", start_ma: 0.0046, end_ma: 0.0046, aliases: ["pyramids", "giza"] },
   { id: "code-hammurabi", name: "Code of Hammurabi", type: "event", start_ma: 0.0038, end_ma: 0.0038, aliases: ["hammurabi", "babylon", "law"] },
-  { id: "iron-age-begins", name: "Iron Age Begins", type: "event", start_ma: 0.0032, end_ma: 0.0032, aliases: ["iron age"] },
+  { id: "iron-age-begins", name: "The Iron Age", type: "event", start_ma: 0.0032, end_ma: 0.00255, aliases: ["iron age", "iron age begins"], note: "Iron tools and weapons spread widely after the Late Bronze Age Collapse. Shown here through the rise of the Achaemenid Persian Empire and the start of Classical Antiquity in the Mediterranean/Near East - other regions (e.g. Northern Europe, East Asia) kept working with iron on very different timelines." },
   { id: "hinduism-roots", name: "Hinduism (Vedic Period)", type: "event", start_ma: 0.0035, end_ma: 0.0025, aliases: ["hinduism", "vedas"] },
   { id: "zoroastrianism", name: "Zoroastrianism Founded", type: "event", start_ma: 0.003, end_ma: 0.003, aliases: ["zoroaster", "zarathustra"] },
   { id: "akkadian-empire", name: "Akkadian Empire", type: "event", start_ma: 0.00436, end_ma: 0.00418, aliases: ["akkad", "sargon"] },
@@ -526,6 +528,11 @@ export const PRESETS = [
   },
   { id: "recent-3", label: "Recent 3", queries: ["paleogene", "neogene", "quaternary"] },
   { id: "mesozoic", label: "Mesozoic", queries: ["triassic", "jurassic", "cretaceous"] },
+  {
+    id: "ages-of-humankind",
+    label: "Ages of Humankind",
+    queries: ["stone age", "first agriculture", "bronze age", "iron age", "european renaissance", "industrial revolution", "internet"],
+  },
   {
     id: "human-civilization",
     label: "Civilization",
