@@ -1086,6 +1086,25 @@ input[type="text"]:focus {
   text-align: left;
 }
 
+.detail-note {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 0.65rem;
+}
+
+.detail-note div {
+  color: var(--quiet);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.detail-note span {
+  min-width: 0;
+  color: var(--text);
+  text-align: left;
+  line-height: 1.4;
+}
+
 .wiki-panel {
   display: none;
   margin-top: 0.8rem;
