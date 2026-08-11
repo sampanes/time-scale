@@ -701,6 +701,16 @@ function renderDetailPanel() {
 
   const duration = getItemDurationMa(item);
   const aliases = item.aliases?.length ? item.aliases.slice(0, 5).join(", ") : "None";
+  const distanceRow = item.distanceFromEarth
+    ? `<div>Distance</div><span>${escapeHtml(item.distanceFromEarth)}</span>`
+    : "";
+  const noteBlock = item.note
+    ? `
+      <div class="detail-note">
+        <div>Note</div>
+        <span>${escapeHtml(item.note)}</span>
+      </div>`
+    : "";
 
   return `
     <aside class="detail-panel" aria-label="Selected timeline item">
@@ -711,11 +721,13 @@ function renderDetailPanel() {
         <div>Start</div><span>${formatMa(item.start_ma)}</span>
         <div>End</div><span>${formatMa(item.end_ma)}</span>
         <div>Duration</div><span>${duration > 0 ? formatDurationMa(duration) : "Point event"}</span>
+        ${distanceRow}
       </div>
       <div class="detail-aliases">
         <div>Aliases</div>
         <span>${escapeHtml(aliases)}</span>
       </div>
+      ${noteBlock}
       ${renderWikiSummary(item)}
     </aside>
   `;
