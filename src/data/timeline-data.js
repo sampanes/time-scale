@@ -151,7 +151,7 @@ export const TIMELINE_ITEMS = [
   { id: "haudenosaunee-confederacy", name: "Haudenosaunee Confederacy (Iroquois)", type: "event", start_ma: 0.00088, end_ma: 0, aliases: ["iroquois", "six nations", "great law of peace"] },
   { id: "maori-nz", name: "Māori Settlement of NZ", type: "event", start_ma: 0.00075, end_ma: 0.0007, aliases: ["maori", "aotearoa", "polynesian navigation"] },
   { id: "inca-agriculture", name: "Incan Agricultural Peak", type: "event", start_ma: 0.00058, end_ma: 0.00049, aliases: ["inca terraces", "andenes", "potato cultivation"] },
-  { id: "yaqui-resistance", name: "Yaqui Cultural Endurance", type: "event", start_ma: 0.00049, end_ma: 0.0001, aliases: ["yaqui", "hiaki", "deer dance", "resistance"] },
+  { id: "yaqui-resistance", name: "Yaqui Cultural Endurance", type: "event", start_ma: 0.00049, end_ma: 0, aliases: ["yaqui", "hiaki", "deer dance", "resistance"] },
   { id: "pawnee-earth-lodges", name: "Pawnee Earth Lodge Peak", type: "event", start_ma: 0.0008, end_ma: 0.00015, aliases: ["pawnee", "earth lodges", "star chart", "astronomy"] },
 
   // People
@@ -554,7 +554,7 @@ export const PRESETS = [
   {
     id: "indigenous-history",
     label: "Indigenous",
-    queries: ["aboriginal", "ancestral puebloans", "mississippian", "haudenosaunee", "maori", "inca", "yaqui", "pawnee"],
+    queries: ["aboriginal", "ancestral puebloans", "mississippian culture", "haudenosaunee", "maori", "inca", "yaqui", "pawnee"],
   },
   {
     id: "greek-wars",
