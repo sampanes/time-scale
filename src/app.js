@@ -1,4 +1,4 @@
-import { PRESET_GROUPS, PRESETS, TIMELINE_ITEMS, TYPE_COLORS } from "./data/timeline-data.js";
+import { PRESET_GROUPS, PRESETS, TIMELINE_ITEMS, TIMELINE_REFERENCE_YEAR, TYPE_COLORS } from "./data/timeline-data.js";
 import { searchTimelineItems } from "./lib/search.js";
 import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
 import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
@@ -234,7 +234,7 @@ function search(query) {
 function renderSearchCount() {
   if (!elements.searchCount) return;
 
-  elements.searchCount.textContent = `${TIMELINE_ITEMS.length.toLocaleString()} searchable events`;
+  elements.searchCount.textContent = `${TIMELINE_ITEMS.length.toLocaleString()} searchable timeline entries`;
 }
 
 function escapeHtml(value) {
@@ -900,6 +900,7 @@ function renderTimeline() {
     viewportHeight,
     offsetY: viewState.offsetY,
     typeColors: TYPE_COLORS,
+    referenceYear: TIMELINE_REFERENCE_YEAR,
   });
 
   const renderOffsetY = viewState.offsetY;

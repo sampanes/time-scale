@@ -29,23 +29,25 @@ test("searchTimelineItems includes scratchpad geology and future additions", () 
   assert.equal(searchTimelineItems(TIMELINE_ITEMS, "dark era")[0].id, "heat-death");
 });
 
-test("renamed extinction entries remain searchable and render as spans", () => {
+test("extinction searches distinguish lineage spans from extinction markers", () => {
+  const mammoth = searchTimelineItems(TIMELINE_ITEMS, "wooly mammoth extinction")[0];
+  assert.equal(mammoth.id, "woolly-mammoth");
+  assert.notEqual(mammoth.start_ma, mammoth.end_ma);
+  assert.doesNotMatch(mammoth.name, /extinction/i);
+
   for (const [query, id] of [
-    ["wooly mammoth extinction", "woolly-mammoth"],
     ["dodo extinction", "dodo-extinction"],
     ["passenger pigeon extinction", "passenger-pigeon-extinction"],
   ]) {
     const result = searchTimelineItems(TIMELINE_ITEMS, query)[0];
-
     assert.equal(result.id, id);
-    assert.notEqual(result.start_ma, result.end_ma);
-    assert.doesNotMatch(result.name, /extinction/i);
+    assert.equal(result.start_ma, result.end_ma);
+    assert.match(result.name, /extinction/i);
   }
 });
 
 test("searchTimelineItems finds curated people by aliases and ascii spellings", () => {
   for (const [query, id] of [
-    ["buddha", "person-siddhartha-gautama"],
     ["schrodinger", "person-erwin-schrodinger"],
     ["garcia marquez", "person-gabriel-garcia-marquez"],
     ["sultan of swat", "person-babe-ruth"],
@@ -56,6 +58,11 @@ test("searchTimelineItems finds curated people by aliases and ascii spellings", 
     assert.equal(result.type, "person");
     assert.notEqual(result.start_ma, result.end_ma);
   }
+
+  const buddha = searchTimelineItems(TIMELINE_ITEMS, "buddha")[0];
+  assert.equal(buddha.id, "person-siddhartha-gautama");
+  assert.equal(buddha.type, "person");
+  assert.equal(buddha.start_ma, buddha.end_ma);
 });
 
 test("searchTimelineItems finds great works by aliases", () => {
@@ -64,7 +71,6 @@ test("searchTimelineItems finds great works by aliases", () => {
     ["colloseum", "work-colosseum"],
     ["statue of david", "work-david"],
     ["mona lisa", "work-mona-lisa"],
-    ["iphone", "work-iphone"],
   ]) {
     const result = searchTimelineItems(TIMELINE_ITEMS, query)[0];
 
@@ -72,6 +78,11 @@ test("searchTimelineItems finds great works by aliases", () => {
     assert.equal(result.type, "work");
     assert.notEqual(result.start_ma, result.end_ma);
   }
+
+  const iphone = searchTimelineItems(TIMELINE_ITEMS, "iphone")[0];
+  assert.equal(iphone.id, "work-iphone");
+  assert.equal(iphone.type, "work");
+  assert.equal(iphone.start_ma, iphone.end_ma);
 });
 
 test("searchTimelineItems finds Athenian and Spartan figures and Greek wars", () => {

@@ -114,7 +114,7 @@ test("app boot wires default presets, autocomplete, and add", async () => {
 
   await import("../src/app.js");
 
-  assert.equal(elements.searchCount.textContent, `${TIMELINE_ITEMS.length.toLocaleString()} searchable events`);
+  assert.equal(elements.searchCount.textContent, `${TIMELINE_ITEMS.length.toLocaleString()} searchable timeline entries`);
   assert.match(elements.presetControls.innerHTML, /preset-drawer/);
   assert.match(elements.presetControls.innerHTML, /Deep time/);
   assert.match(elements.presetControls.innerHTML, /Human history/);
