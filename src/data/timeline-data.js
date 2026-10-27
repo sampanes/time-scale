@@ -160,6 +160,14 @@ export const TIMELINE_ITEMS = [
   { id: "first-dawn-redwoods", name: "First Dawn Redwoods (Metasequoia)", type: "event", start_ma: 94, end_ma: 94, aliases: ["dawn redwood", "dawn redwoods", "metasequoia", "first dawn redwood"], wikiTitle: "Metasequoia", note: "Metasequoia appears in the Late Cretaceous (~94 Ma) and once grew across the Arctic. It was named from fossils in 1941 and assumed extinct until living trees were found in Hubei, China, in the 1940s, the botanical equivalent of the coelacanth. It is now planted in parks worldwide." },
   { id: "first-wollemi-pines", name: "First Wollemi Pine Relatives", type: "event", start_ma: 90, end_ma: 90, aliases: ["wollemi pine", "wollemia", "wollemi", "first wollemi pine"], wikiTitle: "Wollemia", note: "Dilwynites pollen, virtually identical to living Wollemia pollen, appears ~90 Ma (Turonian) across Australia, New Zealand and Antarctica, and the family Araucariaceae reaches back to the Jurassic. Fewer than 100 wild trees were discovered in a canyon near Sydney in 1994; the exact location is still secret." },
 
+  { id: "first-land-animals", name: "First Land Animals (Kampecaris)", type: "event", start_ma: 425, end_ma: 425, aliases: ["first land animals", "land animals", "kampecaris", "first millipede", "millipedes", "animals on land"], wikiTitle: "Kampecaris", note: "Kampecaris obanensis, a millipede from the Isle of Kerrera, Scotland, was radiometrically dated to ~425 Ma in 2020 and is the oldest body fossil of an air-breathing land animal. Pneumodesmus, long cited at 428 Ma, was redated to ~414 Ma in 2017. Ordovician trackways (~450 Ma) hint at earlier walkers, and molecular clocks put the first millipedes nearer 500 Ma." },
+  { id: "first-scorpions", name: "First Scorpions (Parioscorpio)", type: "event", start_ma: 437, end_ma: 437, aliases: ["scorpions", "scorpion", "parioscorpio", "first scorpions"], wikiTitle: "Scorpion", note: "Parioscorpio venator from the early Silurian Waukesha biota of Wisconsin (~437 Ma, Wendruff et al. 2020) edges out Scotland's Dolichophonus (~434 Ma). Its respiratory and circulatory anatomy already matches living scorpions, and it may have breathed both in water and on land, making scorpions candidates for the first animals to walk ashore." },
+  { id: "first-hagfish", name: "First Hagfish (Myxinikela)", type: "event", start_ma: 308, end_ma: 308, aliases: ["hagfish", "hagfishes", "slime eel", "myxinikela", "first hagfish"], wikiTitle: "Hagfish", note: "Myxinikela siroka from the Mazon Creek beds of Illinois (~308 Ma) is the oldest definite hagfish, a stem form with the slime glands already in place. A 2024 fossil-calibrated analysis puts the crown-group origin near 275 Ma, and Cretaceous Tethymyxine (~100 Ma) is nearly identical to living species. Hagfish and lampreys together are the only surviving jawless vertebrates." },
+  { id: "first-turtles", name: "First Turtles (Odontochelys)", type: "event", start_ma: 220, end_ma: 220, aliases: ["turtles", "turtle", "tortoises", "odontochelys", "testudines", "first turtles"], wikiTitle: "Turtle", note: "Odontochelys from Late Triassic China (~220 Ma) had a plastron and teeth but no carapace yet; Proganochelys (~210 Ma) carries the full shell. Stem turtles reach back through Pappochelys (~240 Ma) to Eunotosaurus (~260 Ma), showing the shell assembled from broadened ribs over 40 million years. The shelled body plan has barely changed since." },
+  { id: "first-royal-ferns", name: "First Modern Royal Ferns (Osmundastrum)", type: "event", start_ma: 180, end_ma: 180, aliases: ["royal ferns", "royal fern", "cinnamon fern", "osmunda", "osmundastrum", "first royal ferns"], wikiTitle: "Osmundaceae", note: "A rhizome from Early Jurassic lahar deposits at Korsarod, Sweden, preserves cell nuclei and chromosomes mid-division. Their size and structure match the living cinnamon fern, implying ~180 million years of genomic stasis (Bomfleur, McLoughlin and Vajda, Science 2014). The family Osmundaceae is older still, with fossils from the Triassic and possibly the Late Permian." },
+  { id: "first-giant-salamanders", name: "First Giant Salamander Relatives (Chunerpeton)", type: "event", start_ma: 165, end_ma: 165, aliases: ["giant salamanders", "giant salamander", "hellbender", "cryptobranchidae", "chunerpeton", "first salamanders"], wikiTitle: "Giant salamander", note: "Chunerpeton tianyiensis from the Middle Jurassic Jiulongshan Formation of Inner Mongolia (~165 Ma) was described in 2003 as the oldest member of the giant salamander family; later analyses move it just outside the family or even outside crown salamanders, so it anchors the lineage rather than the family. Living giant salamanders include the Chinese giant salamander, the largest amphibian alive at up to 1.8 m." },
+  { id: "first-gars", name: "First Gars", type: "event", start_ma: 150, end_ma: 150, aliases: ["gars", "gar", "alligator gar", "lepisosteidae", "first gars"], wikiTitle: "Gar", note: "Jurassic gars (~150 Ma) look almost identical to the seven living species. A 2024 study (Brownstein et al.) found gars have the slowest molecular evolution of any jawed vertebrate, and that alligator gar and longnose gar, whose lineages split at least 100 million years ago, still produce fertile hybrids, the oldest such split known in any animal. Gars were among Darwin's original 'ganoid' living fossils." },
+
   // Domestication Section
   { id: "dog-domestication", name: "Dog Domestication", type: "event", start_ma: 0.033, end_ma: 0.015, aliases: ["dogs", "canis lupus familiaris", "first pet"] },
   { id: "pigeon-domestication", name: "Pigeon Domestication", type: "event", start_ma: 0.0065, end_ma: 0.005, aliases: ["pigeons", "columba livia", "rock dove"] },
@@ -554,58 +562,70 @@ export const TYPE_COLORS = {
   fiction: ["#8b1a5a", "#a0206e", "#b52e80", "#c73c92"],
 };
 
+export const PRESET_GROUPS = ["Deep time", "Human history", "Cosmos & stories"];
+
 export const PRESETS = [
-  { id: "eons", label: "Eons", queries: ["hadean", "archean", "proterozoic", "phanerozoic"] },
-  { id: "paleozoic", label: "Paleozoic", queries: ["cambrian", "ordovician", "silurian", "devonian", "carboniferous", "permian"] },
-  {
-    id: "cosmic",
-    label: "Big Bang -> Heat Death",
-    queries: ["big bang", "first stars", "first life", "first fish", "first sharks", "dinosaurs", "k-pg", "first humans", "now", "sun expands", "heat death"],
-  },
-  { id: "recent-3", label: "Recent 3", queries: ["paleogene", "neogene", "quaternary"] },
-  { id: "mesozoic", label: "Mesozoic", queries: ["triassic", "jurassic", "cretaceous"] },
+  { id: "eons", label: "Eons", group: "Deep time", queries: ["hadean", "archean", "proterozoic", "phanerozoic"] },
+  { id: "paleozoic", label: "Paleozoic", group: "Deep time", queries: ["cambrian", "ordovician", "silurian", "devonian", "carboniferous", "permian"] },
+  { id: "mesozoic", label: "Mesozoic", group: "Deep time", queries: ["triassic", "jurassic", "cretaceous"] },
+  { id: "recent-3", label: "Recent 3", group: "Deep time", queries: ["paleogene", "neogene", "quaternary"] },
   {
     id: "living-fossils",
     label: "Living Fossils",
+    group: "Deep time",
     queries: [
       "stromatolites", "cyanobacteria", "sponges", "brachiopods", "jellyfish", "nautiloids", "crinoids", "horseshoe crabs",
-      "lungfish", "coelacanth", "lampreys", "cockroaches", "velvet worms", "cycads", "ginkgo", "tuatara", "platypus",
-      "horsetails", "welwitschia", "sturgeons", "crocodilians", "dawn redwood", "wollemi pine",
+      "scorpions", "lungfish", "coelacanth", "lampreys", "cockroaches", "hagfish", "velvet worms", "cycads",
+      "ginkgo", "tuatara", "turtles", "platypus", "horsetails", "royal ferns", "giant salamanders", "gars",
+      "welwitschia", "sturgeons", "crocodilians", "dawn redwood", "wollemi pine",
     ],
   },
   {
     id: "ages-of-humankind",
     label: "Ages of Humankind",
+    group: "Human history",
     queries: ["stone age", "first agriculture", "bronze age", "iron age", "european renaissance", "industrial revolution", "internet"],
   },
   {
     id: "human-civilization",
     label: "Civilization",
+    group: "Human history",
     queries: ["first writing", "giza", "babylon", "democracy", "macedon", "roman empire", "islam", "printing press", "1492", "industrial revolution", "apollo 11 moon landing", "internet"],
   },
   {
     id: "indigenous-history",
     label: "Indigenous",
+    group: "Human history",
     queries: ["aboriginal", "ancestral puebloans", "mississippian culture", "haudenosaunee", "maori", "inca", "yaqui", "pawnee"],
   },
   {
     id: "greek-wars",
     label: "Greek Wars",
+    group: "Human history",
     queries: ["trojan war", "xerxes invasion", "marathon", "battle of thermopylae", "salamis", "peloponnesian war", "siege of syracuse", "battle of aegospotami", "leuctra", "chaeronea"],
   },
   {
     id: "domestication",
     label: "Domestication",
+    group: "Human history",
     queries: ["dog domestication", "pigeon domestication", "cattle domestication", "horse domestication", "cat domestication"],
   },
   {
     id: "renaissances",
     label: "Renaissances",
+    group: "Human history",
     queries: ["islamic golden age", "carolingian", "bengal renaissance", "harlem renaissance", "european renaissance"],
+  },
+  {
+    id: "cosmic",
+    label: "Big Bang -> Heat Death",
+    group: "Cosmos & stories",
+    queries: ["big bang", "first stars", "first life", "first fish", "first sharks", "dinosaurs", "k-pg", "first humans", "now", "sun expands", "heat death"],
   },
   {
     id: "voyager-1-journey",
     label: "Voyager 1's Journey",
+    group: "Cosmos & stories",
     queries: [
       "voyager launch",
       "termination shock",
@@ -622,6 +642,7 @@ export const PRESETS = [
   {
     id: "fictional-timelines",
     label: "Fiction",
+    group: "Cosmos & stories",
     queries: ["cthulhu", "middle-earth", "falcon crashes", "fallout", "hitchhiker", "first contact", "matrix", "planet of the apes", "dune", "warhammer", "wells", "doctor who"],
   },
 ];

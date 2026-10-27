@@ -1,4 +1,4 @@
-import { PRESETS, TIMELINE_ITEMS, TYPE_COLORS } from "./data/timeline-data.js";
+import { PRESET_GROUPS, PRESETS, TIMELINE_ITEMS, TYPE_COLORS } from "./data/timeline-data.js";
 import { searchTimelineItems } from "./lib/search.js";
 import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
 import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
@@ -409,11 +409,12 @@ function renderPresets() {
   const hidden = getHiddenPresets();
   const customs = getCustomPresets();
   const visibleBuiltins = PRESETS.filter((p) => !hidden.includes(p.id));
-  const groups = [
-    { label: "Deep time", ids: ["eons", "paleozoic", "mesozoic", "recent-3", "living-fossils"] },
-    { label: "Human history", ids: ["human-civilization", "indigenous-history", "greek-wars", "domestication", "renaissances"] },
-    { label: "Cosmos & stories", ids: ["cosmic", "fictional-timelines"] },
-  ];
+  const groups = PRESET_GROUPS.map((label) => ({
+    label,
+    presets: visibleBuiltins.filter((preset) => preset.group === label),
+  }));
+  const ungrouped = visibleBuiltins.filter((preset) => !PRESET_GROUPS.includes(preset.group));
+  if (ungrouped.length) groups.push({ label: "Other", presets: ungrouped });
 
   const renderPresetItem = (preset, deleteTitle) => `
     <div class="preset-item">
@@ -422,9 +423,8 @@ function renderPresets() {
     </div>`;
 
   const builtinsHtml = groups.map((group) => {
-    const presets = group.ids.map((id) => visibleBuiltins.find((preset) => preset.id === id)).filter(Boolean);
-    if (!presets.length) return "";
-    return `<section class="preset-group"><h3>${group.label}</h3><div>${presets.map((preset) => renderPresetItem(preset, "Hide preset")).join("")}</div></section>`;
+    if (!group.presets.length) return "";
+    return `<section class="preset-group"><h3>${group.label}</h3><div>${group.presets.map((preset) => renderPresetItem(preset, "Hide preset")).join("")}</div></section>`;
   }).join("");
 
   const customsHtml = customs.map((preset) => renderPresetItem(preset, "Delete preset")).join("");

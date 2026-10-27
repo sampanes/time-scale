@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { PRESETS, TIMELINE_ITEMS } from "../src/data/timeline-data.js";
+import { PRESET_GROUPS, PRESETS, TIMELINE_ITEMS } from "../src/data/timeline-data.js";
 import { searchTimelineItems } from "../src/lib/search.js";
 
 const resolve = (query) => searchTimelineItems(TIMELINE_ITEMS, query)[0];
@@ -30,16 +30,22 @@ test("Living Fossils preset resolves to first-appearance instants, oldest first"
     ["nautiloids", "first-nautiloids"],
     ["crinoids", "first-crinoids"],
     ["horseshoe crabs", "first-horseshoe-crabs"],
+    ["scorpions", "first-scorpions"],
     ["lungfish", "first-lungfish"],
     ["coelacanth", "first-coelacanths"],
     ["lampreys", "first-lampreys"],
     ["cockroaches", "first-cockroaches"],
+    ["hagfish", "first-hagfish"],
     ["velvet worms", "first-velvet-worms"],
     ["cycads", "first-cycads"],
     ["ginkgo", "first-ginkgos"],
     ["tuatara", "first-rhynchocephalians"],
+    ["turtles", "first-turtles"],
     ["platypus", "monotreme-divergence"],
     ["horsetails", "first-horsetails"],
+    ["royal ferns", "first-royal-ferns"],
+    ["giant salamanders", "first-giant-salamanders"],
+    ["gars", "first-gars"],
     ["welwitschia", "first-welwitschia"],
     ["sturgeons", "first-sturgeons"],
     ["crocodilians", "first-crocodilians"],
@@ -61,5 +67,13 @@ test("Living Fossils preset resolves to first-appearance instants, oldest first"
     assert.ok(item.start_ma <= previousStart, `${id} is out of oldest-first order`);
     assert.ok(item.note, `${id} should carry a note explaining the date`);
     previousStart = item.start_ma;
+  }
+});
+
+test("every preset belongs to a known group and groups are unique", () => {
+  assert.equal(new Set(PRESET_GROUPS).size, PRESET_GROUPS.length, "PRESET_GROUPS has duplicates");
+
+  for (const preset of PRESETS) {
+    assert.ok(PRESET_GROUPS.includes(preset.group), `${preset.id}: group "${preset.group}" is not in PRESET_GROUPS`);
   }
 });

@@ -119,6 +119,8 @@ test("app boot wires default presets, autocomplete, and add", async () => {
   assert.match(elements.presetControls.innerHTML, /Deep time/);
   assert.match(elements.presetControls.innerHTML, /Human history/);
   assert.match(elements.presetControls.innerHTML, /Cosmos & stories/);
+  assert.match(elements.presetControls.innerHTML, /Ages of Humankind/);
+  assert.match(elements.presetControls.innerHTML, /Voyager 1&#039;s Journey/);
   assert.match(elements.timelineContainer.innerHTML, /empty-presets/);
 
   elements.searchInput.value = "hadean";
