@@ -410,7 +410,7 @@ function renderPresets() {
   const customs = getCustomPresets();
   const visibleBuiltins = PRESETS.filter((p) => !hidden.includes(p.id));
   const groups = [
-    { label: "Deep time", ids: ["eons", "paleozoic", "mesozoic", "recent-3"] },
+    { label: "Deep time", ids: ["eons", "paleozoic", "mesozoic", "recent-3", "living-fossils"] },
     { label: "Human history", ids: ["human-civilization", "indigenous-history", "greek-wars", "domestication", "renaissances"] },
     { label: "Cosmos & stories", ids: ["cosmic", "fictional-timelines"] },
   ];
