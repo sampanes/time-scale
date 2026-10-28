@@ -67,6 +67,23 @@ test("Living Fossils preset lists first-appearance instants, oldest first", () =
   }
 });
 
+test("Origin Myths preset lists noted works, oldest first", () => {
+  const preset = PRESETS.find((candidate) => candidate.id === "origin-myths");
+
+  assert.ok(preset, "origin-myths preset is defined");
+
+  let previousStart = Infinity;
+
+  for (const id of preset.itemIds) {
+    const item = itemsById.get(id);
+
+    assert.equal(item.type, "work", `${id} should be a work dated by its source`);
+    assert.ok(item.start_ma <= previousStart, `${id} is out of oldest-first order`);
+    assert.ok(item.note, `${id} should carry a note explaining the date`);
+    previousStart = item.start_ma;
+  }
+});
+
 test("every preset belongs to a known group and groups are unique", () => {
   assert.equal(new Set(PRESET_GROUPS).size, PRESET_GROUPS.length, "PRESET_GROUPS has duplicates");
 
