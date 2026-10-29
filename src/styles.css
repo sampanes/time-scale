@@ -586,10 +586,12 @@ input[type="text"]:focus {
 
 .timeline-stage {
   position: absolute;
-  top: 0;
+  top: var(--stage-top, 0px);
   right: 0;
   left: 0;
   min-height: 1px;
+  /* Content panned above the stage is clipped here instead of showing through the band. */
+  overflow: hidden;
   will-change: transform;
 }
 
@@ -2023,6 +2025,11 @@ input[type="text"]:focus {
     flex-wrap: wrap;
     justify-content: flex-end;
     gap: 0.35rem 0.7rem;
+  }
+
+  /* One line on a phone: the range stays, the span and count go, so the band stays short. */
+  .timeline-readout > div + div {
+    display: none;
   }
 
   .timeline-toolbar {

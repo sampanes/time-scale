@@ -15,6 +15,8 @@ let activeClimateMetricIds = [...DEFAULT_CLIMATE_METRIC_IDS];
 let focusedClimateMetricId = DEFAULT_CLIMATE_METRIC_IDS[0];
 
 const viewState = {
+  // Height of the floating toolbar/readout band; the stage starts below it.
+  stageTop: 0,
   pxPerMa: 1,
   offsetY: 0,
   selectionKey: "",
@@ -35,6 +37,7 @@ const WHEEL_SETTLE_MS = 120;
 const POINT_LABEL_STACK_PX = 26;
 const CLUSTER_ZOOM_MS = 320;
 const TOOLTIP_CLUSTER_NAMES = 5;
+const STAGE_CHROME_GAP_PX = 8;
 const KEYBOARD_PAN_PX = 80;
 const KEYBOARD_PAN_FAST_PX = 400;
 const KEYBOARD_PAGE_FRACTION = 0.9;
@@ -1067,6 +1070,13 @@ function renderTimeline() {
     patchTimelineParts(parts);
   } else {
     writeTimelineParts(parts);
+
+    // A fresh layout brings its own toolbar and readout; if the band they take changed, the
+    // stage height just written is stale, so render once more against the real band.
+    if (measureStageTop()) {
+      handleViewportMetricsChanged();
+      return;
+    }
   }
 
   scheduleUrlStateUpdate();
@@ -1226,7 +1236,29 @@ function renderNowLine(nowY, offsetY, viewportTop, viewportBottom, active = fals
 }
 
 function getTimelineViewportHeight() {
-  return Math.max(320, elements.timelineContainer.clientHeight || Math.floor(window.innerHeight * 0.68));
+  const containerHeight = elements.timelineContainer.clientHeight || Math.floor(window.innerHeight * 0.68);
+  return Math.max(320, containerHeight - viewState.stageTop);
+}
+
+// The toolbar and readout float at the top of the container, so the stage starts below them
+// and no label or tick is ever drawn under the controls. Measured rather than styled, because
+// the readout wraps at narrow widths. Returns true when the band changed height.
+function measureStageTop() {
+  const container = elements.timelineContainer;
+  const chrome = [container.querySelector?.(".timeline-toolbar"), container.querySelector?.(".timeline-readout")];
+  let bottom = 0;
+
+  for (const element of chrome) {
+    if (!element || typeof element.offsetHeight !== "number") continue;
+    bottom = Math.max(bottom, element.offsetTop + element.offsetHeight);
+  }
+
+  const stageTop = bottom > 0 ? bottom + STAGE_CHROME_GAP_PX : 0;
+  if (stageTop === viewState.stageTop) return false;
+
+  viewState.stageTop = stageTop;
+  container.style.setProperty?.("--stage-top", `${stageTop}px`);
+  return true;
 }
 
 function fitSelectionToViewport(range, viewportHeight) {
@@ -1392,7 +1424,7 @@ function cancelOffsetAnimation() {
 
 function getViewportY(clientY) {
   const rect = elements.timelineContainer.getBoundingClientRect();
-  return clientY - rect.top;
+  return clientY - rect.top - viewState.stageTop;
 }
 
 function getPointerDistance(pointers) {
@@ -1707,7 +1739,8 @@ function bindTimelineMeasurementUpdates() {
   let lastHeight = elements.timelineContainer.clientHeight;
   const updateIfHeightChanged = () => {
     const nextHeight = elements.timelineContainer.clientHeight;
-    if (Math.abs(nextHeight - lastHeight) < 1) return;
+    const bandChanged = measureStageTop();
+    if (!bandChanged && Math.abs(nextHeight - lastHeight) < 1) return;
     lastHeight = nextHeight;
     handleViewportMetricsChanged();
   };
