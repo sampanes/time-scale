@@ -17,8 +17,31 @@ const viewState = {
   pxPerMa: 1,
   offsetY: 0,
   selectionKey: "",
+  // True while the view is exactly what fitSelectionToViewport produced. A fitted view
+  // follows viewport height changes; a view the user panned, zoomed, or loaded from a
+  // share link keeps its zoom and only has its offset re-clamped.
+  fitted: false,
   animationFrame: null,
-  urlFrame: null,
+  renderFrame: null,
+  urlTimer: null,
+};
+
+const URL_WRITE_DELAY_MS = 300;
+const RESIZE_DEBOUNCE_MS = 150;
+const WHEEL_SETTLE_MS = 120;
+const KEYBOARD_PAN_PX = 80;
+const KEYBOARD_PAN_FAST_PX = 400;
+const KEYBOARD_PAGE_FRACTION = 0.9;
+
+// The timeline container is split into persistent parts so a pan or zoom rewrites only
+// the stage columns. Each part remembers the last HTML it was given and is touched only
+// when that HTML changes. Without element references (no querySelector) every render
+// falls back to one full innerHTML write.
+const timelineDom = {
+  layout: "",
+  incremental: false,
+  refs: {},
+  html: {},
 };
 
 const uiState = {
@@ -428,9 +451,11 @@ function renderPresets() {
   }).join("");
 
   const customsHtml = customs.map((preset) => renderPresetItem(preset, "Delete preset")).join("");
+  const existingDrawer = elements.presetControls.querySelector?.(".preset-drawer") ?? null;
+  const openAttribute = existingDrawer?.open ? " open" : "";
 
   elements.presetControls.innerHTML = `
-    <details class="preset-drawer">
+    <details class="preset-drawer"${openAttribute}>
       <summary><span>Presets</span><small>${visibleBuiltins.length + customs.length} available</small></summary>
       <div class="preset-menu">
         ${builtinsHtml}
@@ -675,7 +700,7 @@ function closeTimelineDetail() {
   renderTimeline();
 }
 
-function renderTimelineToolbar(isEnabled) {
+function renderTimelineToolbarContent(isEnabled) {
   const disabled = isEnabled ? "" : " disabled";
   const shareLabel = uiState.shareCopied ? "Copied" : "Share";
   const exportButton = uiState.mode === "climate"
@@ -683,17 +708,31 @@ function renderTimelineToolbar(isEnabled) {
     : "";
 
   return `
-    <div class="timeline-toolbar" aria-label="Timeline controls">
       <button class="tool-btn" type="button" data-view-action="fit" title="Fit selection"${disabled}>Fit</button>
       <button class="tool-btn icon-btn" type="button" data-view-action="zoom-out" title="Zoom out"${disabled}>-</button>
       <button class="tool-btn icon-btn" type="button" data-view-action="zoom-in" title="Zoom in"${disabled}>+</button>
       <button class="tool-btn" type="button" data-view-action="share" title="Copy share link"${disabled}>${shareLabel}</button>
       ${exportButton}
-    </div>
   `;
 }
 
-function renderDetailPanel() {
+function wrapTimelineToolbar(content) {
+  return `<div class="timeline-toolbar" aria-label="Timeline controls">${content}</div>`;
+}
+
+function renderTimelineToolbar(isEnabled) {
+  return wrapTimelineToolbar(renderTimelineToolbarContent(isEnabled));
+}
+
+function wrapTimelineReadout(content) {
+  return `<div class="timeline-readout">${content}</div>`;
+}
+
+function wrapDetailPanel(content) {
+  return `<aside class="detail-panel" aria-label="Selected timeline item">${content}</aside>`;
+}
+
+function renderDetailPanelContent() {
   if (!selectedDetailId) return "";
 
   const item = selectedItems.find((candidate) => candidate.id === selectedDetailId);
@@ -713,7 +752,6 @@ function renderDetailPanel() {
     : "";
 
   return `
-    <aside class="detail-panel" aria-label="Selected timeline item">
       <button class="detail-close" type="button" data-detail-action="close" aria-label="Close details">&times;</button>
       <div class="detail-name">${escapeHtml(item.name)}</div>
       <div class="detail-grid">
@@ -729,7 +767,6 @@ function renderDetailPanel() {
       </div>
       ${noteBlock}
       ${renderWikiSummary(item)}
-    </aside>
   `;
 }
 
@@ -777,7 +814,7 @@ function handleViewAction(action) {
 }
 
 async function shareCurrentUrl() {
-  writeUrlState();
+  flushUrlState();
 
   try {
     if (navigator.clipboard?.writeText) {
@@ -826,19 +863,35 @@ function readInitialUrlState() {
   if (pxPerMa !== null && pxPerMa > 0) viewState.pxPerMa = pxPerMa;
   if (offsetY !== null) viewState.offsetY = offsetY;
   if (selectedItems.length && pxPerMa !== null && pxPerMa > 0 && offsetY !== null) {
+    // A share link carries an exact view: keep it, never refit it.
     viewState.selectionKey = getSelectionKey();
+    viewState.fitted = false;
   }
 
   uiState.chromeCollapsed = params.get("compact") === "1";
 }
 
 function scheduleUrlStateUpdate() {
-  if (viewState.urlFrame !== null) return;
+  if (viewState.urlTimer !== null) clearTimeout(viewState.urlTimer);
 
-  viewState.urlFrame = requestAnimationFrame(() => {
-    viewState.urlFrame = null;
+  viewState.urlTimer = setTimeout(() => {
+    viewState.urlTimer = null;
     writeUrlState();
-  });
+  }, URL_WRITE_DELAY_MS);
+}
+
+function flushUrlState() {
+  if (viewState.urlTimer !== null) {
+    clearTimeout(viewState.urlTimer);
+    viewState.urlTimer = null;
+  }
+
+  writeUrlState();
+}
+
+function flushPendingUrlState() {
+  if (viewState.urlTimer === null) return;
+  flushUrlState();
 }
 
 function writeUrlState() {
@@ -871,7 +924,31 @@ function formatUrlNumber(value) {
   return Number(value.toPrecision(8)).toString();
 }
 
+function requestRender() {
+  if (viewState.renderFrame !== null) return;
+
+  viewState.renderFrame = requestAnimationFrame(() => {
+    viewState.renderFrame = null;
+    renderTimeline();
+  });
+}
+
+function cancelPendingRender() {
+  if (viewState.renderFrame !== null) {
+    cancelAnimationFrame(viewState.renderFrame);
+    viewState.renderFrame = null;
+  }
+}
+
+function resetTimelineDom() {
+  timelineDom.layout = "";
+  timelineDom.incremental = false;
+  timelineDom.refs = {};
+  timelineDom.html = {};
+}
+
 function renderTimeline() {
+  cancelPendingRender();
 
   if (!selectedItems.length) {
     elements.timelineContainer.innerHTML = `
@@ -882,6 +959,8 @@ function renderTimeline() {
         ${renderEmptyPresetPicker()}
       </div>
     `;
+    resetTimelineDom();
+    timelineDom.layout = "empty";
     scheduleUrlStateUpdate();
     return;
   }
@@ -925,24 +1004,114 @@ function renderTimeline() {
     : "";
   const climateClass = uiState.mode === "climate" ? " integrated-climate" : "";
 
-  elements.timelineContainer.innerHTML = `
-    ${renderTimelineToolbar(true)}
-    <div class="timeline-readout">
+  const parts = {
+    toolbar: renderTimelineToolbarContent(true),
+    readout: `
       <div>
         <span>${viewModel.labels.rangeStart}</span>
         <span class="readout-arrow">to</span>
         <span>${viewModel.labels.rangeEnd}</span>
       </div>
       <div>${viewModel.labels.span} span / ${viewModel.selectedCount} selected / Ma = million years</div>
-    </div>
-    <div class="timeline-stage${climateClass}" style="height:${viewportHeight}px;">
-      <div class="ruler-column">${ticksHtml}</div>
-      <div class="event-column">${segmentsHtml}${nowHtml}</div>
-      ${climateLaneHtml}
-    </div>
-    ${renderDetailPanel()}
-  `;
+    `,
+    stageClass: `timeline-stage${climateClass}`,
+    stageHeight: viewportHeight,
+    ruler: ticksHtml,
+    events: `${segmentsHtml}${nowHtml}`,
+    climate: climateLaneHtml,
+    detail: renderDetailPanelContent(),
+    detailId: selectedDetailId,
+  };
+
+  if (timelineDom.layout === "selected" && timelineDom.incremental) {
+    patchTimelineParts(parts);
+  } else {
+    writeTimelineParts(parts);
+  }
+
   scheduleUrlStateUpdate();
+}
+
+function writeTimelineParts(parts) {
+  const container = elements.timelineContainer;
+  container.innerHTML = `
+    ${wrapTimelineToolbar(parts.toolbar)}
+    ${wrapTimelineReadout(parts.readout)}
+    <div class="${parts.stageClass}" style="height:${parts.stageHeight}px;">
+      <div class="ruler-column">${parts.ruler}</div>
+      <div class="event-column">${parts.events}</div>
+      ${parts.climate}
+    </div>
+    ${parts.detail ? wrapDetailPanel(parts.detail) : ""}
+  `;
+
+  const query = typeof container.querySelector === "function"
+    ? (selector) => container.querySelector(selector)
+    : () => null;
+  const stage = query(".timeline-stage");
+  const refs = {
+    toolbar: query(".timeline-toolbar"),
+    readout: query(".timeline-readout"),
+    stage,
+    ruler: stage?.querySelector(".ruler-column") ?? null,
+    events: stage?.querySelector(".event-column") ?? null,
+    climate: stage?.querySelector(".climate-column") ?? null,
+    detail: query(".detail-panel"),
+  };
+
+  timelineDom.layout = "selected";
+  timelineDom.refs = refs;
+  timelineDom.html = { ...parts };
+  timelineDom.incremental = Boolean(refs.toolbar && refs.readout && refs.stage && refs.ruler && refs.events);
+}
+
+function patchTimelineParts(parts) {
+  const { refs, html } = timelineDom;
+
+  if (parts.toolbar !== html.toolbar) refs.toolbar.innerHTML = parts.toolbar;
+  if (parts.readout !== html.readout) refs.readout.innerHTML = parts.readout;
+  if (parts.stageClass !== html.stageClass) refs.stage.className = parts.stageClass;
+  if (parts.stageHeight !== html.stageHeight) refs.stage.style.height = `${parts.stageHeight}px`;
+  if (parts.ruler !== html.ruler) refs.ruler.innerHTML = parts.ruler;
+  if (parts.events !== html.events) refs.events.innerHTML = parts.events;
+
+  if (parts.climate !== html.climate) {
+    if (!parts.climate) {
+      refs.climate?.remove();
+      refs.climate = null;
+    } else if (refs.climate) {
+      refs.climate.outerHTML = parts.climate;
+      refs.climate = refs.stage.querySelector(".climate-column");
+    } else {
+      refs.stage.insertAdjacentHTML("beforeend", parts.climate);
+      refs.climate = refs.stage.querySelector(".climate-column");
+    }
+
+    if (parts.climate && !refs.climate) {
+      writeTimelineParts(parts);
+      return;
+    }
+  }
+
+  if (parts.detail !== html.detail) {
+    if (!parts.detail) {
+      refs.detail?.remove();
+      refs.detail = null;
+    } else if (refs.detail) {
+      refs.detail.innerHTML = parts.detail;
+      if (parts.detailId !== html.detailId) refs.detail.scrollTop = 0;
+    } else {
+      elements.timelineContainer.insertAdjacentHTML("beforeend", wrapDetailPanel(parts.detail));
+      refs.detail = elements.timelineContainer.querySelector(".detail-panel");
+    }
+
+    if (parts.detail && !refs.detail) {
+      writeTimelineParts(parts);
+      return;
+    }
+  }
+
+  timelineDom.html = { ...parts };
 }
 
 function renderTick(tick, offsetY, viewportTop, viewportBottom) {
@@ -1012,6 +1181,7 @@ function fitSelectionToViewport(range, viewportHeight) {
   const targetHeight = viewportHeight * (compactClimate ? 0.66 : 0.86);
   viewState.pxPerMa = clamp(targetHeight / spanMa, ZOOM_BOUNDS.minPxPerMa, ZOOM_BOUNDS.maxPxPerMa);
   viewState.offsetY = (viewportHeight - getContentHeight(range, viewState.pxPerMa)) / 2;
+  viewState.fitted = true;
 }
 
 function clamp(value, min, max) {
@@ -1037,7 +1207,19 @@ function panBy(deltaY) {
   const range = getCurrentRange();
   const bounds = getCurrentBounds(range);
   viewState.offsetY = applyRubberDelta(viewState.offsetY, deltaY, bounds);
-  renderTimeline();
+  viewState.fitted = false;
+  requestRender();
+}
+
+// Keyboard panning lands inside the bounds instead of rubber-banding past them, since no
+// pointer release follows to snap it back.
+function nudgeBy(deltaY) {
+  if (!hasSelection()) return;
+
+  cancelOffsetAnimation();
+  viewState.offsetY = clampOffset(viewState.offsetY + deltaY, getCurrentBounds());
+  viewState.fitted = false;
+  requestRender();
 }
 
 function zoomAt(viewportY, zoomFactor) {
@@ -1056,7 +1238,20 @@ function zoomAt(viewportY, zoomFactor) {
 
   viewState.pxPerMa = next.pxPerMa;
   viewState.offsetY = next.offsetY;
-  renderTimeline();
+  viewState.fitted = false;
+  requestRender();
+}
+
+// A wheel or trackpad fling has no pointer release, so snap back to the bounds once the
+// events stop; otherwise rubber-banding can leave the content outside the viewport.
+let wheelSettleTimer = null;
+
+function scheduleWheelSettle() {
+  if (wheelSettleTimer !== null) clearTimeout(wheelSettleTimer);
+  wheelSettleTimer = setTimeout(() => {
+    wheelSettleTimer = null;
+    snapOffsetToBounds();
+  }, WHEEL_SETTLE_MS);
 }
 
 function snapOffsetToBounds() {
@@ -1083,7 +1278,7 @@ function animateOffsetTo(targetOffsetY) {
     const progress = clamp((now - startTime) / durationMs, 0, 1);
     const eased = 1 - (1 - progress) ** 3;
     viewState.offsetY = startOffsetY + (targetOffsetY - startOffsetY) * eased;
-    renderTimeline();
+    requestRender();
 
     if (progress < 1) {
       viewState.animationFrame = requestAnimationFrame(step);
@@ -1359,6 +1554,7 @@ function bindEvents() {
       }
 
       panBy(-event.deltaY);
+      scheduleWheelSettle();
     },
     { passive: false },
   );
@@ -1368,33 +1564,113 @@ function bindEvents() {
   elements.timelineContainer.addEventListener("pointerup", endPointerInteraction);
   elements.timelineContainer.addEventListener("pointercancel", endPointerInteraction);
 
+  document.addEventListener("keydown", handleDocumentKeydown);
+
+  let resizeTimer = null;
   window.addEventListener("resize", () => {
-    markSelectionChanged();
-    renderTimeline();
+    if (resizeTimer !== null) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      resizeTimer = null;
+      handleViewportMetricsChanged();
+    }, RESIZE_DEBOUNCE_MS);
   });
+
+  window.addEventListener("pagehide", flushPendingUrlState);
+}
+
+// The viewport changed size (container height, fonts swapping in, window resize). A view
+// we fit ourselves is fit again; any other view keeps its zoom and only has its offset
+// pulled back inside the new bounds.
+function handleViewportMetricsChanged() {
+  if (hasSelection()) {
+    if (viewState.fitted) {
+      viewState.selectionKey = "";
+    } else {
+      viewState.offsetY = clampOffset(viewState.offsetY, getCurrentBounds());
+    }
+  }
+
+  renderTimeline();
 }
 
 function bindTimelineMeasurementUpdates() {
   let lastHeight = elements.timelineContainer.clientHeight;
-  const refitIfHeightChanged = () => {
+  const updateIfHeightChanged = () => {
     const nextHeight = elements.timelineContainer.clientHeight;
     if (Math.abs(nextHeight - lastHeight) < 1) return;
     lastHeight = nextHeight;
-    viewState.selectionKey = "";
-    renderTimeline();
+    handleViewportMetricsChanged();
   };
 
   if (typeof ResizeObserver === "function") {
-    const observer = new ResizeObserver(refitIfHeightChanged);
+    const observer = new ResizeObserver(updateIfHeightChanged);
     observer.observe(elements.timelineContainer);
   }
 
   if (document.fonts?.ready) {
-    document.fonts.ready.then(() => {
-      viewState.selectionKey = "";
-      renderTimeline();
-    });
+    document.fonts.ready.then(updateIfHeightChanged);
   }
+}
+
+function isEditableTarget(target) {
+  if (!target || typeof target !== "object") return false;
+
+  const tagName = typeof target.tagName === "string" ? target.tagName.toLowerCase() : "";
+  if (tagName === "input" || tagName === "textarea" || tagName === "select") return true;
+
+  return target.isContentEditable === true;
+}
+
+function handleDocumentKeydown(event) {
+  if (event.defaultPrevented || event.ctrlKey || event.metaKey || event.altKey) return;
+  if (isEditableTarget(event.target)) return;
+
+  if (event.key === "Escape") {
+    if (selectedDetailId) {
+      closeTimelineDetail();
+      event.preventDefault();
+    } else {
+      closeAutocomplete();
+    }
+    return;
+  }
+
+  if (!hasSelection()) return;
+
+  const viewportHeight = getTimelineViewportHeight();
+  const arrowStep = event.shiftKey ? KEYBOARD_PAN_FAST_PX : KEYBOARD_PAN_PX;
+  const pageStep = viewportHeight * KEYBOARD_PAGE_FRACTION;
+  let handled = true;
+
+  switch (event.key) {
+    case "ArrowUp":
+      nudgeBy(arrowStep);
+      break;
+    case "ArrowDown":
+      nudgeBy(-arrowStep);
+      break;
+    case "PageUp":
+      nudgeBy(pageStep);
+      break;
+    case "PageDown":
+      nudgeBy(-pageStep);
+      break;
+    case "+":
+    case "=":
+      zoomAt(viewportHeight / 2, 1.25);
+      break;
+    case "-":
+      zoomAt(viewportHeight / 2, 0.8);
+      break;
+    case "f":
+    case "F":
+      fitCurrentSelection();
+      break;
+    default:
+      handled = false;
+  }
+
+  if (handled) event.preventDefault();
 }
 function beginPointerInteraction(event) {
   if (!hasSelection() || isInteractiveTarget(event.target)) return;

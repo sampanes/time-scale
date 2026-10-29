@@ -39,11 +39,16 @@ class FakeElement {
     this.classList = new FakeClassList();
     this.style = {};
     this.clientHeight = 620;
+    this.queryResults = {};
   }
 
   addEventListener(type, callback) {
     this.listeners[type] ||= [];
     this.listeners[type].push(callback);
+  }
+
+  querySelector(selector) {
+    return this.queryResults[selector] ?? null;
   }
 
   querySelectorAll() {
@@ -67,7 +72,7 @@ class FakeElement {
   }
 }
 
-function createFakeDom() {
+function createFakeDom({ search = "" } = {}) {
   const elements = Object.fromEntries(
     ["searchInput", "acList", "chips", "timelineContainer", "tooltip", "presetControls", "brandToggle", "searchCount"].map((id) => [
       id,
@@ -78,15 +83,28 @@ function createFakeDom() {
   elements.addButton = new FakeElement("addButton");
   elements.clearButton = new FakeElement("clearButton");
 
+  const listeners = { window: {}, document: {} };
+  const resizeObservers = [];
+  const urls = [];
+  const frameQueue = new Map();
+  let nextFrameId = 1;
+
   globalThis.window = {
-    location: { search: "", pathname: "/", hash: "" },
-    history: { replaceState() {} },
+    location: { search, pathname: "/", hash: "" },
+    history: {
+      replaceState(_state, _title, url) {
+        urls.push(url);
+      },
+    },
     innerHeight: 800,
     innerWidth: 1200,
     matchMedia() {
       return { matches: false };
     },
-    addEventListener() {},
+    addEventListener(type, callback) {
+      listeners.window[type] ||= [];
+      listeners.window[type].push(callback);
+    },
   };
   globalThis.document = {
     getElementById(id) {
@@ -98,21 +116,60 @@ function createFakeDom() {
       if (selector === "[data-action='clear']") return elements.clearButton;
       return null;
     },
-    addEventListener() {},
+    addEventListener(type, callback) {
+      listeners.document[type] ||= [];
+      listeners.document[type].push(callback);
+    },
+    fonts: { ready: Promise.resolve() },
   };
   globalThis.requestAnimationFrame = (callback) => {
-    callback(0);
-    return 1;
+    const id = nextFrameId++;
+    frameQueue.set(id, callback);
+    return id;
   };
-  globalThis.cancelAnimationFrame = () => {};
+  globalThis.cancelAnimationFrame = (id) => {
+    frameQueue.delete(id);
+  };
+  globalThis.ResizeObserver = class {
+    constructor(callback) {
+      resizeObservers.push(callback);
+    }
 
-  return elements;
+    observe() {}
+  };
+
+  const flushFrames = () => {
+    const callbacks = [...frameQueue.values()];
+    frameQueue.clear();
+    callbacks.forEach((callback) => callback(performance.now()));
+    return callbacks.length;
+  };
+
+  return {
+    elements,
+    listeners,
+    resizeObservers,
+    urls,
+    flushFrames,
+    pendingFrames: () => frameQueue.size,
+    zoomOfLastUrl: () => new URLSearchParams(urls.at(-1)?.split("?")[1] ?? "").get("zoom"),
+  };
 }
 
-test("app boot wires default presets, autocomplete, and add", async () => {
-  const elements = createFakeDom();
+let appInstance = 0;
 
-  await import("../src/app.js");
+// Each boot gets its own module instance so a test can start from a different URL.
+async function bootApp(options) {
+  const dom = createFakeDom(options);
+  appInstance += 1;
+  await import(`../src/app.js?instance=${appInstance}`);
+  return dom;
+}
+
+const SHARE_ITEM_IDS = ["hadean", "proterozoic"];
+
+test("app boot wires default presets, autocomplete, and add", async () => {
+  const { elements } = await bootApp();
 
   assert.equal(elements.searchCount.textContent, `${TIMELINE_ITEMS.length.toLocaleString()} searchable timeline entries`);
   assert.match(elements.presetControls.innerHTML, /preset-drawer/);
@@ -137,4 +194,165 @@ test("app boot wires default presets, autocomplete, and add", async () => {
   elements.clearButton.listeners.click[0]();
   assert.doesNotMatch(elements.chips.innerHTML, /Hadean/);
   assert.match(elements.timelineContainer.innerHTML, /empty-presets/);
+});
+
+test("a share link keeps its zoom through fonts-ready, height changes, and window resize", async () => {
+  SHARE_ITEM_IDS.forEach((id) => assert.ok(TIMELINE_ITEMS.some((item) => item.id === id), `${id} exists`));
+  const dom = await bootApp({ search: `?items=${SHARE_ITEM_IDS.join(",")}&zoom=100&offset=-40000` });
+  const { elements, listeners, resizeObservers } = dom;
+
+  assert.match(elements.timelineContainer.innerHTML, /timeline-stage/);
+  assert.equal(resizeObservers.length, 1);
+  assert.equal(listeners.window.resize?.length, 1);
+  assert.equal(listeners.window.pagehide?.length, 1);
+
+  // The web font swapped in and the header changed height.
+  elements.timelineContainer.clientHeight = 700;
+  resizeObservers[0]([]);
+  await Promise.resolve();
+
+  // The window was resized; the listener is debounced.
+  listeners.window.resize[0]();
+  await new Promise((resolve) => setTimeout(resolve, 250));
+
+  // pagehide flushes the debounced URL write so the view state can be read back.
+  listeners.window.pagehide[0]();
+  assert.equal(dom.zoomOfLastUrl(), "100");
+  assert.match(elements.timelineContainer.innerHTML, /height:700px/);
+});
+
+test("a fresh selection is still fit to a changed viewport height", async () => {
+  const dom = await bootApp({ search: `?items=${SHARE_ITEM_IDS.join(",")}` });
+  const { elements, resizeObservers } = dom;
+
+  dom.listeners.window.pagehide[0]();
+  const fittedZoom = dom.zoomOfLastUrl();
+  assert.notEqual(fittedZoom, null);
+
+  elements.timelineContainer.clientHeight = 1240;
+  resizeObservers[0]([]);
+  dom.listeners.window.pagehide[0]();
+  assert.notEqual(dom.zoomOfLastUrl(), fittedZoom);
+});
+
+test("wheel input coalesces into one render per animation frame", async () => {
+  const dom = await bootApp({ search: `?items=${SHARE_ITEM_IDS.join(",")}&zoom=100&offset=-100` });
+  const { elements } = dom;
+
+  assert.equal(dom.pendingFrames(), 0);
+  const before = elements.timelineContainer.innerHTML;
+  const wheel = elements.timelineContainer.listeners.wheel[0];
+  let prevented = 0;
+  const event = {
+    deltaY: 40,
+    ctrlKey: false,
+    clientY: 300,
+    preventDefault() {
+      prevented += 1;
+    },
+  };
+
+  wheel(event);
+  wheel(event);
+  wheel(event);
+
+  assert.equal(prevented, 3);
+  assert.equal(elements.timelineContainer.innerHTML, before, "the stage is not rewritten inside the wheel handler");
+  assert.equal(dom.pendingFrames(), 1, "three wheel events schedule one frame");
+
+  assert.equal(dom.flushFrames(), 1);
+  assert.notEqual(elements.timelineContainer.innerHTML, before, "the next frame renders the panned stage");
+  assert.equal(dom.pendingFrames(), 0);
+
+  const ctrlEvent = { ...event, ctrlKey: true, deltaY: -120 };
+  wheel(ctrlEvent);
+  assert.equal(dom.pendingFrames(), 1);
+  dom.flushFrames();
+  dom.listeners.window.pagehide[0]();
+  assert.notEqual(dom.zoomOfLastUrl(), "100");
+});
+
+test("a wheel fling past the bounds snaps back once the wheel goes quiet", async () => {
+  const dom = await bootApp({ search: `?items=${SHARE_ITEM_IDS.join(",")}&zoom=100&offset=-100` });
+  const { elements } = dom;
+  const wheel = elements.timelineContainer.listeners.wheel[0];
+  const offsetOfLastUrl = () => Number(new URLSearchParams(dom.urls.at(-1)?.split("?")[1] ?? "").get("offset"));
+
+  // Content is far taller than the viewport, so the top bound is half the viewport height.
+  const topBound = elements.timelineContainer.clientHeight / 2;
+  for (let i = 0; i < 20; i++) wheel({ deltaY: -4000, ctrlKey: false, clientY: 300, preventDefault() {} });
+  dom.flushFrames();
+  dom.listeners.window.pagehide[0]();
+  assert.ok(offsetOfLastUrl() > topBound + 1000, "the fling rubber-bands well past the top bound");
+  assert.equal(dom.pendingFrames(), 0);
+
+  await new Promise((resolve) => setTimeout(resolve, 200));
+  assert.equal(dom.pendingFrames(), 1, "the settle timer starts the snap animation");
+  for (let i = 0; i < 40 && dom.pendingFrames() > 0; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    dom.flushFrames();
+  }
+  assert.equal(dom.pendingFrames(), 0, "the snap animation finishes");
+  dom.listeners.window.pagehide[0]();
+  assert.ok(Math.abs(offsetOfLastUrl() - topBound) < 1, `offset ${offsetOfLastUrl()} settles on the bound ${topBound}`);
+});
+test("renderPresets keeps an open drawer open", async () => {
+  const { elements } = await bootApp();
+
+  assert.match(elements.presetControls.innerHTML, /<details class="preset-drawer">/);
+
+  elements.presetControls.queryResults[".preset-drawer"] = { open: true };
+  elements.searchInput.value = "hadean";
+  elements.searchInput.listeners.input[0]();
+  elements.addButton.listeners.click[0]();
+  assert.match(elements.presetControls.innerHTML, /<details class="preset-drawer" open>/);
+
+  elements.presetControls.queryResults[".preset-drawer"] = { open: false };
+  elements.clearButton.listeners.click[0]();
+  assert.match(elements.presetControls.innerHTML, /<details class="preset-drawer">/);
+});
+
+test("keyboard shortcuts pan, zoom, fit, and skip editable targets", async () => {
+  const dom = await bootApp({ search: `?items=${SHARE_ITEM_IDS.join(",")}&zoom=100&offset=-100` });
+  const { elements, listeners } = dom;
+  const keydown = listeners.document.keydown[0];
+  const fire = (key, extra = {}) => {
+    let prevented = false;
+    keydown({
+      key,
+      target: {},
+      preventDefault() {
+        prevented = true;
+      },
+      ...extra,
+    });
+    return prevented;
+  };
+
+  const before = elements.timelineContainer.innerHTML;
+  assert.equal(fire("ArrowDown", { target: { tagName: "INPUT" } }), false);
+  assert.equal(fire("ArrowDown", { target: { isContentEditable: true } }), false);
+  assert.equal(fire("ArrowDown", { ctrlKey: true }), false);
+  assert.equal(fire("x"), false);
+  assert.equal(dom.pendingFrames(), 0);
+
+  assert.equal(fire("ArrowDown"), true);
+  assert.equal(dom.pendingFrames(), 1);
+  dom.flushFrames();
+  assert.notEqual(elements.timelineContainer.innerHTML, before);
+
+  assert.equal(fire("+"), true);
+  dom.flushFrames();
+  listeners.window.pagehide[0]();
+  assert.equal(dom.zoomOfLastUrl(), "125");
+
+  assert.equal(fire("f"), true);
+  listeners.window.pagehide[0]();
+  assert.notEqual(dom.zoomOfLastUrl(), "125");
+
+  elements.searchInput.value = "hadean";
+  elements.searchInput.listeners.input[0]();
+  assert.equal(elements.acList.classList.contains("open"), true);
+  assert.equal(fire("Escape"), false);
+  assert.equal(elements.acList.classList.contains("open"), false);
 });

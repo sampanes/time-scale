@@ -56,7 +56,6 @@ input {
   border-bottom: 1px solid var(--line);
   background: rgba(5, 5, 7, 0.96);
   padding: 1rem 1.2rem 0.9rem;
-  backdrop-filter: blur(14px);
 }
 
 .brand-row {
@@ -543,10 +542,9 @@ input[type="text"]:focus {
   align-items: center;
   border: 1px solid rgba(89, 97, 107, 0.6);
   border-radius: 6px;
-  background: rgba(5, 5, 7, 0.88);
+  background: rgba(5, 5, 7, 0.94);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.36);
   padding: 0.25rem;
-  backdrop-filter: blur(12px);
 }
 
 .tool-btn {
@@ -930,13 +928,20 @@ input[type="text"]:focus {
   pointer-events: none;
 }
 
+.now-line::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  box-shadow: 0 0 18px rgba(126, 240, 162, 0.78);
+  animation: now-pulse 4.5s ease-in-out infinite;
+  pointer-events: none;
+}
+
 .now-line-bar {
   position: absolute;
   inset: 0;
   overflow: hidden;
   background: var(--now);
-  box-shadow: 0 0 14px rgba(126, 240, 162, 0.55);
-  animation: now-pulse 4.5s ease-in-out infinite;
 }
 
 .now-line-bar::after {
@@ -944,7 +949,7 @@ input[type="text"]:focus {
   position: absolute;
   top: -2px;
   bottom: -2px;
-  left: -30%;
+  left: 0;
   width: 30%;
   background: linear-gradient(
     90deg,
@@ -955,9 +960,10 @@ input[type="text"]:focus {
   filter: blur(0.5px);
   animation: now-sweep 6s ease-in-out infinite;
   pointer-events: none;
+  will-change: transform;
 }
 
-.now-line.active .now-line-bar {
+.now-line.active::before {
   animation: now-pulse 2s ease-in-out infinite;
 }
 
@@ -986,21 +992,22 @@ input[type="text"]:focus {
 
 @keyframes now-pulse {
   0%, 100% {
-    box-shadow: 0 0 10px rgba(126, 240, 162, 0.45);
+    opacity: 0.55;
   }
   50% {
-    box-shadow: 0 0 18px rgba(126, 240, 162, 0.78);
+    opacity: 1;
   }
 }
 
 @keyframes now-sweep {
-  0% { left: -30%; }
-  100% { left: 100%; }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(334%); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .now-line-bar {
+  .now-line::before {
     animation: none;
+    opacity: 0.7;
   }
   .now-line-bar::after {
     animation: none;

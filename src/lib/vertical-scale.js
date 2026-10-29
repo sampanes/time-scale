@@ -16,6 +16,9 @@ const ONE_YEAR_MA = 1 / 1_000_000;
 const ONE_KYA_MA = 0.001;
 const MAX_TICKS_PER_LEVEL = 2000;
 
+// A finer tick level is drawn only when its ticks sit at least this many pixels apart.
+export const MIN_TICK_SPACING_PX = 6;
+
 export const ZOOM_BOUNDS = Object.freeze({
   minPxPerMa: 1e-110,
   maxPxPerMa: 2_000_000,
@@ -47,6 +50,7 @@ export function createTickPlan(pxPerMa, viewportHeight, options = {}) {
   const longSpacingPx = longIntervalMa * pxPerMa;
   const labelFineTicks = longSpacingPx > 200;
   const minMicroIntervalMa = pxPerMa < 1_000_000 ? ONE_KYA_MA : ONE_YEAR_MA;
+  const hasRoom = (intervalMa) => intervalMa * pxPerMa >= MIN_TICK_SPACING_PX;
 
   const levels = [
     {
@@ -60,21 +64,21 @@ export function createTickPlan(pxPerMa, viewportHeight, options = {}) {
       name: "medium",
       intervalMa: mediumIntervalMa,
       widthPct: TICK_WIDTHS.medium,
-      show: pxPerMa >= 0.001,
+      show: pxPerMa >= 0.001 && hasRoom(mediumIntervalMa),
       label: true,
     },
     {
       name: "short",
       intervalMa: shortIntervalMa,
       widthPct: TICK_WIDTHS.short,
-      show: pxPerMa >= 0.1,
+      show: pxPerMa >= 0.1 && hasRoom(shortIntervalMa),
       label: labelFineTicks,
     },
     {
       name: "micro",
       intervalMa: microIntervalMa,
       widthPct: TICK_WIDTHS.micro,
-      show: pxPerMa >= 10 && microIntervalMa >= minMicroIntervalMa,
+      show: pxPerMa >= 10 && hasRoom(microIntervalMa) && microIntervalMa >= minMicroIntervalMa,
       label: labelFineTicks,
     },
   ];
@@ -158,7 +162,7 @@ export function makeVisibleTicks(options) {
   const visibleMinMa = Math.max(range.viewMin, yToMa(visibleBottomY, range, pxPerMa));
   const plan = createTickPlan(pxPerMa, viewportHeight);
   const ticks = [];
-  const seenMas = [];
+  const seenMas = new Set();
   const labelledYs = [];
 
   for (const level of plan.levels) {
@@ -178,13 +182,15 @@ export function makeVisibleTicks(options) {
       const epsilon = tickEpsilon(normalizedMa, level.intervalMa);
 
       if (normalizedMa < range.viewMin - epsilon || normalizedMa > range.viewMax + epsilon) continue;
-      if (seenMas.some((seenMa) => Math.abs(seenMa - normalizedMa) <= epsilon)) continue;
+      // A coarser level claims its Ma first, so the coincident finer-level tick is dropped.
+      // normalizeTickMa already rounds to 14 significant digits, so coincident ticks are bit-identical.
+      if (seenMas.has(normalizedMa)) continue;
 
       const y = maToY(normalizedMa, range, pxPerMa);
       const labelCollision = labelledYs.some((labelY) => Math.abs(labelY - y) < 44);
       const showLabel = level.name === "long" || (level.label && !labelCollision);
 
-      seenMas.push(normalizedMa);
+      seenMas.add(normalizedMa);
       if (showLabel) labelledYs.push(y);
 
       ticks.push({

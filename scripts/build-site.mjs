@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { cp, mkdir, rm, writeFile, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -26,4 +27,19 @@ await cp(resolve(root, "assets"), resolve(siteDir, "assets"), { recursive: true 
 await cp(resolve(root, "src"), resolve(siteDir, "src"), { recursive: true });
 await writeFile(resolve(siteDir, ".nojekyll"), "");
 
-console.log(`Built _site with cache-buster v=${commitHash}`);
+// Fail the build when a modulepreload hint points at a file that did not ship.
+const builtHtml = await readFile(resolve(siteDir, "index.html"), "utf8");
+const preloadHrefs = [...builtHtml.matchAll(/<link\b[^>]*\brel=["']modulepreload["'][^>]*>/gi)]
+  .map((match) => match[0].match(/\bhref=["']([^"']+)["']/i)?.[1])
+  .filter((href) => href && !/^[a-z][a-z0-9+.-]*:|^\/\//i.test(href));
+const missingPreloads = preloadHrefs.filter((href) => {
+  const path = resolve(siteDir, href.replace(/[?#].*$/, ""));
+  return !path.startsWith(siteDir) || !existsSync(path);
+});
+
+if (missingPreloads.length > 0) {
+  console.error(`Build failed: modulepreload targets missing from _site: ${missingPreloads.join(", ")}`);
+  process.exit(1);
+}
+
+console.log(`Built _site with cache-buster v=${commitHash} (${preloadHrefs.length} modulepreload hints checked)`);
