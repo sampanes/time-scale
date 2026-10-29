@@ -263,9 +263,15 @@ input[type="text"]:focus {
 .chips {
   display: flex;
   min-height: 1.65rem;
+  /* About four rows plus a sliver of the fifth as the scroll cue; a long selection must not
+     push the timeline down the window. */
+  max-height: 8.4rem;
   flex-wrap: wrap;
   gap: 0.35rem;
   align-items: center;
+  align-content: flex-start;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .climate-metric-controls {
@@ -1989,12 +1995,9 @@ input[type="text"]:focus {
     padding: 0.8rem;
   }
 
-  /* A long selection must not push the timeline below the fold: the chips scroll in place. */
+  /* Three rows on a phone. */
   .chips {
     max-height: 6.6rem;
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    align-content: flex-start;
   }
 
   h1 {
