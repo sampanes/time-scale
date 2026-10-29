@@ -1,7 +1,7 @@
 import { PRESET_GROUPS, PRESETS, TIMELINE_ITEMS, TIMELINE_REFERENCE_YEAR, TYPE_COLORS } from "./data/timeline-data.js";
 import { searchTimelineItems } from "./lib/search.js";
-import { buildVerticalTimelineViewModel, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
-import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, zoomAroundY } from "./lib/vertical-scale.js";
+import { buildVerticalTimelineViewModel, getClusterSpreadPxPerMa, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
+import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, maToY, zoomAroundY } from "./lib/vertical-scale.js";
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
 import { buildVerticalClimateViewModel, renderVerticalClimateLane } from "./lib/vertical-climate-view.js";
 import { CLIMATE_METRICS, DEFAULT_CLIMATE_METRIC_IDS } from "./data/climate-metrics.js";
@@ -9,6 +9,7 @@ import { readFiniteUrlNumber } from "./lib/url-state.js";
 
 let selectedItems = [];
 let selectedDetailId = null;
+let timelineViewModel = null;
 let autocompleteIndex = -1;
 let activeClimateMetricIds = [...DEFAULT_CLIMATE_METRIC_IDS];
 let focusedClimateMetricId = DEFAULT_CLIMATE_METRIC_IDS[0];
@@ -29,6 +30,11 @@ const viewState = {
 const URL_WRITE_DELAY_MS = 300;
 const RESIZE_DEBOUNCE_MS = 150;
 const WHEEL_SETTLE_MS = 120;
+// A point label is 24 px tall on desktop and hangs below its line, so instants closer than this
+// stack into one labeled group instead of overprinting each other.
+const POINT_LABEL_STACK_PX = 26;
+const CLUSTER_ZOOM_MS = 320;
+const TOOLTIP_CLUSTER_NAMES = 5;
 const KEYBOARD_PAN_PX = 80;
 const KEYBOARD_PAN_FAST_PX = 400;
 const KEYBOARD_PAGE_FRACTION = 0.9;
@@ -695,6 +701,37 @@ function selectTimelineDetail(id) {
   renderTimeline();
 }
 
+// A tap on a stacked label zooms the stack apart instead of opening one member's detail,
+// since the label stands for several instants and the tap cannot say which one was meant.
+function activateTimelineItem(id) {
+  const cluster = getClusterFor(id);
+  if (cluster && zoomToCluster(cluster)) return;
+
+  selectTimelineDetail(id);
+}
+
+function getClusterFor(id) {
+  return timelineViewModel?.segments.find((segment) => segment.id === id)?.cluster ?? null;
+}
+
+function zoomToCluster(cluster) {
+  const viewportHeight = getTimelineViewportHeight();
+  const targetPxPerMa = getClusterSpreadPxPerMa(cluster, {
+    pxPerMa: viewState.pxPerMa,
+    viewportHeight,
+    labelStackPx: POINT_LABEL_STACK_PX,
+    maxPxPerMa: ZOOM_BOUNDS.maxPxPerMa,
+  });
+  if (targetPxPerMa === null) return false;
+
+  animateViewTo({
+    pxPerMa: targetPxPerMa,
+    anchorMa: (cluster.maxMa + cluster.minMa) / 2,
+    anchorViewportY: viewportHeight / 2,
+  });
+  return true;
+}
+
 function closeTimelineDetail() {
   selectedDetailId = null;
   renderTimeline();
@@ -960,6 +997,7 @@ function renderTimeline() {
       </div>
     `;
     resetTimelineDom();
+    timelineViewModel = null;
     timelineDom.layout = "empty";
     scheduleUrlStateUpdate();
     return;
@@ -980,7 +1018,9 @@ function renderTimeline() {
     offsetY: viewState.offsetY,
     typeColors: TYPE_COLORS,
     referenceYear: TIMELINE_REFERENCE_YEAR,
+    pointLabelStackPx: POINT_LABEL_STACK_PX,
   });
+  timelineViewModel = viewModel;
 
   const renderOffsetY = viewState.offsetY;
   const cullSlack = Math.max(viewportHeight, 400);
@@ -1114,6 +1154,13 @@ function patchTimelineParts(parts) {
   timelineDom.html = { ...parts };
 }
 
+function renderPointLabel(segment) {
+  if (segment.labelVisible === false) return "";
+
+  const count = segment.cluster ? `<span class="event-point-count">+${segment.cluster.ids.length - 1}</span>` : "";
+  return `<div class="event-point-label${segment.cluster ? " clustered" : ""}">${escapeHtml(segment.name)}${count}</div>`;
+}
+
 function renderTick(tick, offsetY, viewportTop, viewportBottom) {
   const y = tick.y + offsetY;
   if (!Number.isFinite(y) || y < viewportTop || y > viewportBottom) return "";
@@ -1133,10 +1180,17 @@ function renderVerticalSegment(segment, offsetY, viewportTop, viewportBottom) {
     const y = segment.y + offsetY;
     if (!Number.isFinite(y) || y < viewportTop || y > viewportBottom) return "";
 
+    const stacked = segment.labelVisible === false;
+    const stackedClass = stacked ? " stacked" : "";
+    const clusterAttr = segment.cluster ? ` data-cluster-size="${segment.cluster.ids.length}"` : "";
+    // A labeled instant sits above the lines stacked under it, so its label is what the
+    // pointer reaches and the stack opens as one.
+    const zIndex = stacked ? segment.zIndex : segment.zIndex + 1;
+
     return `
-      <div class="event-point" style="top:${y}px;z-index:${segment.zIndex};${colorStyle}" data-timeline-id="${segment.id}">
+      <div class="event-point${stackedClass}" style="top:${y}px;z-index:${zIndex};${colorStyle}" data-timeline-id="${segment.id}"${clusterAttr}>
         <div class="event-point-line"></div>
-        <div class="event-point-label">${escapeHtml(segment.name)}</div>
+        ${renderPointLabel(segment)}
       </div>
     `;
   }
@@ -1290,6 +1344,45 @@ function animateOffsetTo(targetOffsetY) {
   viewState.animationFrame = requestAnimationFrame(step);
 }
 
+function prefersReducedMotion() {
+  return Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
+}
+
+// Zooms toward a target scale while an anchor moment glides from where it sits to a chosen
+// viewport line, so the stack being opened never jumps out from under the pointer.
+function animateViewTo({ pxPerMa: targetPxPerMa, anchorMa, anchorViewportY }) {
+  cancelOffsetAnimation();
+
+  const range = getCurrentRange();
+  const viewportHeight = getTimelineViewportHeight();
+  const startAnchorY = maToY(anchorMa, range, viewState.pxPerMa) + viewState.offsetY;
+  const logStart = Math.log(viewState.pxPerMa);
+  const logTarget = Math.log(targetPxPerMa);
+  const startTime = performance.now();
+  const durationMs = prefersReducedMotion() ? 0 : CLUSTER_ZOOM_MS;
+  viewState.fitted = false;
+
+  function step(now) {
+    const progress = durationMs > 0 ? clamp((now - startTime) / durationMs, 0, 1) : 1;
+    const eased = 1 - (1 - progress) ** 3;
+    const pxPerMa = Math.exp(logStart + (logTarget - logStart) * eased);
+    const anchorY = startAnchorY + (anchorViewportY - startAnchorY) * eased;
+    viewState.pxPerMa = pxPerMa;
+    viewState.offsetY = anchorY - maToY(anchorMa, range, pxPerMa);
+
+    if (progress >= 1) {
+      viewState.offsetY = clampOffset(viewState.offsetY, getCurrentBounds(range, viewportHeight));
+      viewState.animationFrame = null;
+    } else {
+      viewState.animationFrame = requestAnimationFrame(step);
+    }
+
+    requestRender();
+  }
+
+  viewState.animationFrame = requestAnimationFrame(step);
+}
+
 function cancelOffsetAnimation() {
   if (viewState.animationFrame !== null) {
     cancelAnimationFrame(viewState.animationFrame);
@@ -1347,9 +1440,26 @@ function showTooltip(event, id) {
            <div class="tooltip-row">Duration <span>${formatDurationMa(duration)}</span></div>`
         : ""
     }
+    ${renderTooltipClusterRows(id)}
   `;
   elements.tooltip.classList.add("visible");
   moveTooltip(event);
+}
+
+function renderTooltipClusterRows(id) {
+  const cluster = getClusterFor(id);
+  if (!cluster) return "";
+
+  const others = cluster.names.slice(1);
+  const shown = others.slice(0, TOOLTIP_CLUSTER_NAMES);
+  const unlisted = others.length - shown.length;
+  const hint = cluster.maxMa > cluster.minMa ? "Click to spread them apart" : "Same moment, so zoom cannot separate them";
+
+  return `
+    <div class="tooltip-row">Stacked here <span>${others.length} more</span></div>
+    <div class="tooltip-list">${shown.map((name) => `<div>${escapeHtml(name)}</div>`).join("")}${unlisted > 0 ? `<div>and ${unlisted} more</div>` : ""}</div>
+    <div class="tooltip-hint">${hint}</div>
+  `;
 }
 
 function hideTooltip() {
@@ -1784,7 +1894,7 @@ function endPointerInteraction(event) {
   snapOffsetToBounds();
 
   if (tappedItemId) {
-    selectTimelineDetail(tappedItemId);
+    activateTimelineItem(tappedItemId);
   }
 }
 

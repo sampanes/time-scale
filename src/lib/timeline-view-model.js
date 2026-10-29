@@ -11,6 +11,10 @@ const MIN_SEGMENT_EDGE_MIX_PCT = 62;
 const MAX_SEGMENT_EDGE_MIX_PCT = 90;
 const MIN_SEGMENT_GLOW_MIX_PCT = 12;
 const MAX_SEGMENT_GLOW_MIX_PCT = 34;
+const DEFAULT_POINT_LABEL_STACK_PX = 26;
+const CLUSTER_SPREAD_GAP_FACTOR = 1.4;
+const CLUSTER_SPREAD_VIEWPORT_FRACTION = 0.6;
+const CLUSTER_SPREAD_MIN_FACTOR = 1.5;
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -58,6 +62,59 @@ function annotateSegmentOverlap(segments) {
   return segments;
 }
 
+// Instants whose label boxes would overprint each other collapse into one labeled stack: the
+// oldest keeps its label plus a count, the rest draw only their lines until a zoom pulls them
+// apart. A stack is measured from its leader, so each visible label clears the next one.
+function annotatePointClusters(segments, labelStackPx) {
+  const points = segments.filter((segment) => segment.isPoint).sort((a, b) => a.y - b.y);
+  let leader = null;
+
+  for (const point of points) {
+    if (leader && point.y - leader.y < labelStackPx) {
+      leader.cluster.ids.push(point.id);
+      leader.cluster.names.push(point.name);
+      leader.cluster.mas.push(point.start_ma);
+      leader.cluster.minMa = Math.min(leader.cluster.minMa, point.start_ma);
+      leader.cluster.maxMa = Math.max(leader.cluster.maxMa, point.start_ma);
+      point.labelVisible = false;
+      point.clusterLeaderId = leader.id;
+      point.cluster = null;
+      continue;
+    }
+
+    leader = point;
+    point.labelVisible = true;
+    point.clusterLeaderId = null;
+    point.cluster = { ids: [point.id], names: [point.name], mas: [point.start_ma], minMa: point.start_ma, maxMa: point.start_ma };
+  }
+
+  for (const point of points) {
+    if (point.cluster && point.cluster.ids.length < 2) point.cluster = null;
+  }
+
+  return segments;
+}
+
+// The zoom that pulls a stack apart: enough that its closest neighbors clear the label height,
+// but never more than fits the stack in most of the viewport, so a tap is one step toward the
+// detail rather than a leap to an unrelated scale. Null when every member shares one moment.
+export function getClusterSpreadPxPerMa(cluster, options = {}) {
+  const { pxPerMa, viewportHeight, labelStackPx = DEFAULT_POINT_LABEL_STACK_PX, maxPxPerMa = Infinity } = options;
+  const spanMa = cluster.maxMa - cluster.minMa;
+  if (!(spanMa > 0)) return null;
+
+  const sortedMas = [...cluster.mas].sort((a, b) => a - b);
+  let minGapMa = spanMa;
+  for (let index = 1; index < sortedMas.length; index++) {
+    const gap = sortedMas[index] - sortedMas[index - 1];
+    if (gap > 0 && gap < minGapMa) minGapMa = gap;
+  }
+
+  const spreadPxPerMa = (labelStackPx * CLUSTER_SPREAD_GAP_FACTOR) / minGapMa;
+  const fitPxPerMa = (viewportHeight * CLUSTER_SPREAD_VIEWPORT_FRACTION) / spanMa;
+  return Math.min(maxPxPerMa, Math.max(pxPerMa * CLUSTER_SPREAD_MIN_FACTOR, Math.min(spreadPxPerMa, fitPxPerMa)));
+}
+
 export function buildVerticalTimelineViewModel(items, options = {}) {
   const {
     pxPerMa = DEFAULT_VERTICAL_PX_PER_MA,
@@ -67,6 +124,7 @@ export function buildVerticalTimelineViewModel(items, options = {}) {
     rangePaddingRatio = DEFAULT_VERTICAL_PADDING_RATIO,
     minSinglePointSpanMa = DEFAULT_MIN_SINGLE_POINT_SPAN_MA,
     referenceYear,
+    pointLabelStackPx = DEFAULT_POINT_LABEL_STACK_PX,
   } = options;
   const range = getVerticalTimelineRange(items, { rangePaddingRatio, minSinglePointSpanMa });
 
@@ -100,6 +158,8 @@ export function buildVerticalTimelineViewModel(items, options = {}) {
       zIndex,
     };
   }));
+
+  annotatePointClusters(segments, pointLabelStackPx);
 
   return {
     range,

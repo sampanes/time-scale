@@ -918,6 +918,24 @@ input[type="text"]:focus {
   white-space: nowrap;
 }
 
+.event-point-label.clustered {
+  cursor: zoom-in;
+}
+
+.event-point-count {
+  margin-left: 0.45rem;
+  padding: 0.05rem 0.32rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--item-color) 78%, #ffffff);
+  color: var(--bg);
+  font-size: 0.6rem;
+  letter-spacing: 0;
+}
+
+.event-point.stacked .event-point-line {
+  opacity: 0.72;
+}
+
 .now-line {
   position: absolute;
   right: 0;
@@ -1928,6 +1946,25 @@ input[type="text"]:focus {
 .tooltip-row span {
   color: var(--text);
   text-align: right;
+}
+
+.tooltip-list {
+  margin-top: 0.3rem;
+  padding-left: 0.55rem;
+  border-left: 1px solid var(--line-strong);
+  color: var(--text);
+}
+
+.tooltip-list div {
+  margin-top: 0.12rem;
+}
+
+.tooltip-hint {
+  margin-top: 0.4rem;
+  color: var(--accent);
+  font-size: 0.6rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 ::-webkit-scrollbar {

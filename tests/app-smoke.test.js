@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { TIMELINE_ITEMS } from "../src/data/timeline-data.js";
+import { PRESETS, TIMELINE_ITEMS } from "../src/data/timeline-data.js";
 
 class FakeClassList {
   constructor() {
@@ -122,6 +122,8 @@ function createFakeDom({ search = "" } = {}) {
     },
     fonts: { ready: Promise.resolve() },
   };
+  // The detail panel asks Wikipedia for a summary; keep the tests offline.
+  globalThis.fetch = () => Promise.reject(new Error("offline in tests"));
   globalThis.requestAnimationFrame = (callback) => {
     const id = nextFrameId++;
     frameQueue.set(id, callback);
@@ -355,4 +357,67 @@ test("keyboard shortcuts pan, zoom, fit, and skip editable targets", async () =>
   assert.equal(elements.acList.classList.contains("open"), true);
   assert.equal(fire("Escape"), false);
   assert.equal(elements.acList.classList.contains("open"), false);
+});
+
+const LIVING_FOSSIL_IDS = PRESETS.find((preset) => preset.id === "living-fossils").itemIds;
+
+function tapTimelineItem(dom, timelineId) {
+  const container = dom.elements.timelineContainer;
+  const target = {
+    closest: (selector) => (selector === "[data-timeline-id]" ? { dataset: { timelineId } } : null),
+  };
+  const event = { target, pointerId: 7, pointerType: "mouse", button: 0, clientX: 300, clientY: 400, preventDefault() {} };
+  container.listeners.pointerdown.forEach((listener) => listener(event));
+  container.listeners.pointerup.forEach((listener) => listener(event));
+}
+
+async function settleFrames(dom, waitMs) {
+  await new Promise((resolve) => setTimeout(resolve, waitMs));
+  for (let round = 0; round < 200 && dom.pendingFrames() > 0; round++) dom.flushFrames();
+  assert.equal(dom.pendingFrames(), 0, "the animation should finish");
+}
+
+function countMatches(text, pattern) {
+  return (text.match(pattern) ?? []).length;
+}
+
+test("stacked instants render one labeled leader, and tapping it spreads the stack instead of opening a detail", async () => {
+  const dom = await bootApp({ search: `?items=${LIVING_FOSSIL_IDS.join(",")}` });
+  dom.flushFrames();
+  const html = dom.elements.timelineContainer.innerHTML;
+  const points = countMatches(html, /class="event-point[ "]/g);
+  const labels = countMatches(html, /event-point-label/g);
+  const leader = html.match(/data-timeline-id="([^"]+)" data-cluster-size="(\d+)"/);
+
+  assert.equal(points, LIVING_FOSSIL_IDS.length, "every instant still draws its line");
+  assert.ok(labels < points, `labels should stack at fit, got ${labels} labels for ${points} points`);
+  assert.ok(leader, "at least one stack has a leader with a count");
+  assert.ok(html.includes(`+${Number(leader[2]) - 1}</span>`), "the leader shows how many more are stacked");
+
+  dom.listeners.window.pagehide.forEach((listener) => listener());
+  const zoomBefore = Number(dom.zoomOfLastUrl());
+
+  tapTimelineItem(dom, leader[1]);
+  await settleFrames(dom, 400);
+  dom.listeners.window.pagehide.forEach((listener) => listener());
+  const zoomAfter = Number(dom.zoomOfLastUrl());
+  const after = dom.elements.timelineContainer.innerHTML;
+  const leaderAfter = after.match(new RegExp(`data-timeline-id="${leader[1]}"( data-cluster-size="(\\d+)")?`));
+
+  assert.ok(zoomAfter > zoomBefore * 1.4, `tap should zoom in, ${zoomBefore} -> ${zoomAfter}`);
+  assert.ok(!after.includes("detail-panel"), "a stack tap opens no detail panel");
+  assert.ok(leaderAfter, "the tapped leader is still on screen");
+  assert.ok(!leaderAfter[2] || Number(leaderAfter[2]) < Number(leader[2]), "the stack is smaller after one tap");
+});
+
+test("tapping a lone instant opens its detail panel", async () => {
+  const [first, second] = LIVING_FOSSIL_IDS;
+  const dom = await bootApp({ search: `?items=${first},${second}` });
+  dom.flushFrames();
+  assert.ok(!dom.elements.timelineContainer.innerHTML.includes("data-cluster-size"), "two far instants do not stack");
+
+  tapTimelineItem(dom, first);
+  dom.flushFrames();
+
+  assert.ok(dom.elements.timelineContainer.innerHTML.includes("detail-panel"), "the detail panel opens");
 });
