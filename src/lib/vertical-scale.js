@@ -104,9 +104,13 @@ export function getContentHeight(range, pxPerMa) {
   return Math.max(1, (range.viewMax - range.viewMin) * pxPerMa);
 }
 
-export function getOffsetBounds(contentHeight, viewportHeight) {
-  if (contentHeight <= viewportHeight) {
-    const centeredOffset = (viewportHeight - contentHeight) / 2;
+// `margins` are the pixels short content keeps clear at the viewport edges, so a fitted view
+// can sit nearer the top than the bottom. Content that fits inside the band between them is
+// centered in that band and locked there; taller content pans with half a viewport of headroom.
+export function getOffsetBounds(contentHeight, viewportHeight, { top = 0, bottom = 0 } = {}) {
+  const bandHeight = viewportHeight - top - bottom;
+  if (contentHeight <= bandHeight) {
+    const centeredOffset = top + (bandHeight - contentHeight) / 2;
     return { min: centeredOffset, max: centeredOffset };
   }
 

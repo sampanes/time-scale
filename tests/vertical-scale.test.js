@@ -103,6 +103,15 @@ test("getOffsetBounds centers short content and clamps tall content with half-vi
   assert.equal(clampOffset(-600, { min: -550, max: 250 }), -550);
 });
 
+test("getOffsetBounds keeps short content inside the margins it is given", () => {
+  // Content that exactly fills the band between the margins locks at the top margin.
+  assert.deepEqual(getOffsetBounds(452, 500, { top: 12, bottom: 36 }), { min: 12, max: 12 });
+  // Shorter content centers within the band, not within the viewport.
+  assert.deepEqual(getOffsetBounds(252, 500, { top: 12, bottom: 36 }), { min: 112, max: 112 });
+  // Taller content keeps the half-viewport headroom regardless of the margins.
+  assert.deepEqual(getOffsetBounds(800, 500, { top: 12, bottom: 36 }), { min: -550, max: 250 });
+});
+
 test("applyRubberDelta slows movement past the scroll bounds", () => {
   assert.equal(applyRubberDelta(0, 100, { min: -300, max: 0 }), 20);
   assert.equal(applyRubberDelta(-100, -50, { min: -300, max: 0 }), -150);

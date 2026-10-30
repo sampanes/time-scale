@@ -38,6 +38,11 @@ const POINT_LABEL_STACK_PX = 26;
 const CLUSTER_ZOOM_MS = 320;
 const TOOLTIP_CLUSTER_NAMES = 5;
 const STAGE_CHROME_GAP_PX = 8;
+// Pixels a fitted view keeps clear at the stage edges: room above the oldest item for a label
+// that sits above its bar (short spans and the Now line), and room below the newest instant
+// for the label that hangs under its line.
+const FIT_MARGIN_TOP_PX = 26;
+const FIT_MARGIN_BOTTOM_PX = 36;
 const KEYBOARD_PAN_PX = 80;
 const KEYBOARD_PAN_FAST_PX = 400;
 const KEYBOARD_PAGE_FRACTION = 0.9;
@@ -1261,12 +1266,24 @@ function measureStageTop() {
   return true;
 }
 
+// The climate lane draws its legend and sources over the bottom of the stage, so it keeps the
+// older symmetric fit. The timeline fits to fixed pixel margins instead, so the oldest item
+// starts near the top and the empty space is only what a label at either edge needs.
+function getFitMargins(viewportHeight) {
+  if (uiState.mode === "climate") {
+    const margin = viewportHeight * (window.innerWidth <= 760 ? 0.17 : 0.07);
+    return { top: margin, bottom: margin };
+  }
+  return { top: FIT_MARGIN_TOP_PX, bottom: FIT_MARGIN_BOTTOM_PX };
+}
+
 function fitSelectionToViewport(range, viewportHeight) {
   const spanMa = Math.max(range.viewMax - range.viewMin, 1e-9);
-  const compactClimate = uiState.mode === "climate" && window.innerWidth <= 760;
-  const targetHeight = viewportHeight * (compactClimate ? 0.66 : 0.86);
-  viewState.pxPerMa = clamp(targetHeight / spanMa, ZOOM_BOUNDS.minPxPerMa, ZOOM_BOUNDS.maxPxPerMa);
-  viewState.offsetY = (viewportHeight - getContentHeight(range, viewState.pxPerMa)) / 2;
+  const margins = getFitMargins(viewportHeight);
+  const bandHeight = Math.max(1, viewportHeight - margins.top - margins.bottom);
+  viewState.pxPerMa = clamp(bandHeight / spanMa, ZOOM_BOUNDS.minPxPerMa, ZOOM_BOUNDS.maxPxPerMa);
+  const bounds = getOffsetBounds(getContentHeight(range, viewState.pxPerMa), viewportHeight, margins);
+  viewState.offsetY = clamp(margins.top, bounds.min, bounds.max);
   viewState.fitted = true;
 }
 
@@ -1283,7 +1300,7 @@ function getCurrentRange() {
 }
 
 function getCurrentBounds(range = getCurrentRange(), viewportHeight = getTimelineViewportHeight()) {
-  return getOffsetBounds(getContentHeight(range, viewState.pxPerMa), viewportHeight);
+  return getOffsetBounds(getContentHeight(range, viewState.pxPerMa), viewportHeight, getFitMargins(viewportHeight));
 }
 
 function panBy(deltaY) {

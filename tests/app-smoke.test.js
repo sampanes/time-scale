@@ -430,6 +430,7 @@ test("tapping a lone instant opens its detail panel", async () => {
 });
 
 test("the stage starts below the floating toolbar and readout, and the fit uses what is left", async () => {
+  const FIT_MARGINS_PX = 26 + 36; // FIT_MARGIN_TOP_PX + FIT_MARGIN_BOTTOM_PX in app.js
   const plain = await bootApp({ search: `?items=${SHARE_ITEM_IDS.join(",")}` });
   plain.listeners.window.pagehide[0]();
   const plainZoom = Number(plain.zoomOfLastUrl());
@@ -441,7 +442,7 @@ test("the stage starts below the floating toolbar and readout, and the fit uses 
 
   assert.equal(elements.timelineContainer.style["--stage-top"], "60px", "band = tallest chrome bottom + gap");
   assert.match(elements.timelineContainer.innerHTML, /height:560px/, "stage height = container minus the band");
-  assert.ok(Math.abs(Number(dom.zoomOfLastUrl()) / plainZoom - 560 / 620) < 1e-6, "the fit targets the stage, not the container");
+  assert.ok(Math.abs(Number(dom.zoomOfLastUrl()) / plainZoom - (560 - FIT_MARGINS_PX) / (620 - FIT_MARGINS_PX)) < 1e-6, "the fit targets the stage, not the container");
 
   // The readout wrapped to two lines (narrow window): the band grows and the fitted view refits.
   chrome.readout.offsetHeight = 50;
@@ -450,5 +451,5 @@ test("the stage starts below the floating toolbar and readout, and the fit uses 
 
   assert.equal(elements.timelineContainer.style["--stage-top"], "72px");
   assert.match(elements.timelineContainer.innerHTML, /height:548px/);
-  assert.ok(Math.abs(Number(dom.zoomOfLastUrl()) / plainZoom - 548 / 620) < 1e-6, "a fitted view follows the band");
+  assert.ok(Math.abs(Number(dom.zoomOfLastUrl()) / plainZoom - (548 - FIT_MARGINS_PX) / (620 - FIT_MARGINS_PX)) < 1e-6, "a fitted view follows the band");
 });

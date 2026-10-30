@@ -12,6 +12,18 @@ test("getVerticalTimelineRange pads selected span by ratio", () => {
   assert.equal(range.viewMax, 105);
 });
 
+test("getVerticalTimelineRange pads the newer end more than the older end by default", () => {
+  const range = getVerticalTimelineRange([{ start_ma: 100, end_ma: 0 }]);
+
+  assert.ok(Math.abs(range.viewMax - 102) < 1e-9, "2% of the span above the oldest item");
+  assert.ok(Math.abs(range.viewMin + 8) < 1e-9, "8% of the span below the newest item");
+
+  const flush = getVerticalTimelineRange([{ start_ma: 100, end_ma: 0, noPadOlder: true, noPadNewer: true }]);
+
+  assert.equal(flush.viewMax, 100);
+  assert.equal(flush.viewMin, 0);
+});
+
 test("getVerticalTimelineRange gives single point selections a minimum span", () => {
   const range = getVerticalTimelineRange([{ start_ma: 66, end_ma: 66 }], {
     rangePaddingRatio: 0,

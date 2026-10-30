@@ -1,7 +1,11 @@
 import { formatDurationMa, formatMa } from "./time-scale.js";
 import { getContentHeight, maToY, makeVisibleTicks } from "./vertical-scale.js";
 
-const DEFAULT_VERTICAL_PADDING_RATIO = 0.08;
+// Range padding beyond the oldest and newest items, as a share of the selected span. The fit
+// keeps pixel margins clear as well (app.js). The older end only needs a short ruler run-out;
+// the newer end keeps more so "Now" stays in view when the newest item is recent.
+const DEFAULT_OLDER_PADDING_RATIO = 0.02;
+const DEFAULT_NEWER_PADDING_RATIO = 0.08;
 const DEFAULT_MIN_SINGLE_POINT_SPAN_MA = 1;
 const DEFAULT_VERTICAL_PX_PER_MA = 0.01;
 const DEFAULT_VERTICAL_VIEWPORT_HEIGHT = 800;
@@ -121,7 +125,7 @@ export function buildVerticalTimelineViewModel(items, options = {}) {
     viewportHeight = DEFAULT_VERTICAL_VIEWPORT_HEIGHT,
     offsetY = 0,
     typeColors,
-    rangePaddingRatio = DEFAULT_VERTICAL_PADDING_RATIO,
+    rangePaddingRatio,
     minSinglePointSpanMa = DEFAULT_MIN_SINGLE_POINT_SPAN_MA,
     referenceYear,
     pointLabelStackPx = DEFAULT_POINT_LABEL_STACK_PX,
@@ -181,7 +185,12 @@ export function buildVerticalTimelineViewModel(items, options = {}) {
 }
 
 export function getVerticalTimelineRange(items, options = {}) {
-  const { rangePaddingRatio = DEFAULT_VERTICAL_PADDING_RATIO, minSinglePointSpanMa = DEFAULT_MIN_SINGLE_POINT_SPAN_MA } = options;
+  const {
+    rangePaddingRatio,
+    olderPaddingRatio = rangePaddingRatio ?? DEFAULT_OLDER_PADDING_RATIO,
+    newerPaddingRatio = rangePaddingRatio ?? DEFAULT_NEWER_PADDING_RATIO,
+    minSinglePointSpanMa = DEFAULT_MIN_SINGLE_POINT_SPAN_MA,
+  } = options;
 
   if (!items.length) return null;
 
@@ -212,13 +221,11 @@ export function getVerticalTimelineRange(items, options = {}) {
   const midpoint = (maxMa + minMa) / 2;
   const paddedMinMa = rawSpan === 0 ? midpoint - span / 2 : minMa;
   const paddedMaxMa = rawSpan === 0 ? midpoint + span / 2 : maxMa;
-  const pad = span * rangePaddingRatio;
-
   return {
     minMa,
     maxMa,
     span: rawSpan,
-    viewMin: flushNewer ? paddedMinMa : paddedMinMa - pad,
-    viewMax: flushOlder ? paddedMaxMa : paddedMaxMa + pad,
+    viewMin: flushNewer ? paddedMinMa : paddedMinMa - span * newerPaddingRatio,
+    viewMax: flushOlder ? paddedMaxMa : paddedMaxMa + span * olderPaddingRatio,
   };
 }
