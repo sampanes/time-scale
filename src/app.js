@@ -1,6 +1,6 @@
 import { PRESET_GROUPS, PRESETS, TIMELINE_ITEMS, TIMELINE_REFERENCE_YEAR, TYPE_COLORS } from "./data/timeline-data.js";
 import { searchTimelineItems } from "./lib/search.js";
-import { buildVerticalTimelineViewModel, getClusterSpreadPxPerMa, getVerticalTimelineRange } from "./lib/timeline-view-model.js";
+import { buildVerticalTimelineViewModel, getClusterSpreadPxPerMa, getVerticalTimelineRange, stackSpanLabels } from "./lib/timeline-view-model.js";
 import { ZOOM_BOUNDS, applyRubberDelta, clampOffset, getContentHeight, getOffsetBounds, maToY, zoomAroundY } from "./lib/vertical-scale.js";
 import { formatDurationMa, formatMa, getItemDurationMa } from "./lib/time-scale.js";
 import { buildVerticalClimateViewModel, renderVerticalClimateLane } from "./lib/vertical-climate-view.js";
@@ -1038,8 +1038,13 @@ function renderTimeline() {
   const ticksHtml = viewModel.ticks
     .map((tick) => renderTick(tick, renderOffsetY, viewportTop, viewportBottom))
     .join("");
+  const spanBands = viewModel.segments
+    .filter((segment) => !segment.isPoint)
+    .map((segment) => getSpanBand(segment, renderOffsetY, viewportTop, viewportBottom))
+    .filter(Boolean);
+  const spanLabelShifts = stackSpanLabels(spanBands);
   const segmentsHtml = viewModel.segments
-    .map((segment) => renderVerticalSegment(segment, renderOffsetY, viewportTop, viewportBottom))
+    .map((segment) => renderVerticalSegment(segment, renderOffsetY, viewportTop, viewportBottom, spanLabelShifts.get(segment.id)))
     .join("");
   const nowHtml = renderNowLine(viewModel.nowY, renderOffsetY, viewportTop, viewportBottom, viewModel.nowActive);
   const climateLaneHtml = uiState.mode === "climate"
@@ -1188,7 +1193,18 @@ function renderTick(tick, offsetY, viewportTop, viewportBottom) {
   `;
 }
 
-function renderVerticalSegment(segment, offsetY, viewportTop, viewportBottom) {
+// A span's band as drawn: clamped to the viewport, or null when it is culled.
+function getSpanBand(segment, offsetY, viewportTop, viewportBottom) {
+  const top = segment.top + offsetY;
+  const bottom = top + segment.height;
+  if (!Number.isFinite(top) || bottom < viewportTop || top > viewportBottom) return null;
+
+  const clampedTop = Math.max(top, viewportTop);
+  const clampedBottom = Math.min(bottom, viewportBottom);
+  return { id: segment.id, top: clampedTop, bottom: clampedTop + Math.max(clampedBottom - clampedTop, 2), compact: segment.height < 34 };
+}
+
+function renderVerticalSegment(segment, offsetY, viewportTop, viewportBottom, labelShiftPx = 0) {
   const colorStyle = `--item-color:${segment.color};--segment-fill:${segment.fillMixPct ?? 30}%;--segment-edge:${segment.edgeMixPct ?? 62}%;--segment-glow:${segment.glowMixPct ?? 12}%;`;
 
   if (segment.isPoint) {
@@ -1210,19 +1226,16 @@ function renderVerticalSegment(segment, offsetY, viewportTop, viewportBottom) {
     `;
   }
 
-  const top = segment.top + offsetY;
-  const bottom = top + segment.height;
-  if (!Number.isFinite(top) || bottom < viewportTop || top > viewportBottom) return "";
+  const band = getSpanBand(segment, offsetY, viewportTop, viewportBottom);
+  if (!band) return "";
 
-  const clampedTop = Math.max(top, viewportTop);
-  const clampedBottom = Math.min(bottom, viewportBottom);
-  const clampedHeight = Math.max(clampedBottom - clampedTop, 2);
-  const compactClass = segment.height < 34 ? " compact" : "";
+  const compactClass = band.compact ? " compact" : "";
+  const labelShiftStyle = labelShiftPx > 0 ? `--label-shift:${labelShiftPx}px;` : "";
 
   return `
     <div
       class="event-segment${compactClass}"
-      style="top:${clampedTop}px;height:${clampedHeight}px;z-index:${segment.zIndex};${colorStyle}"
+      style="top:${band.top}px;height:${band.bottom - band.top}px;z-index:${segment.zIndex};${colorStyle}${labelShiftStyle}"
       data-timeline-id="${segment.id}"
     >
       <span class="event-segment-label">${escapeHtml(segment.name)}</span>

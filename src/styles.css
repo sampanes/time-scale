@@ -869,7 +869,7 @@ input[type="text"]:focus {
   display: inline-block;
   max-width: min(28rem, calc(100% - 1rem));
   overflow: hidden;
-  margin: 0.45rem 0 0 clamp(0.65rem, 2vw, 1.35rem);
+  margin: calc(0.45rem + var(--label-shift, 0px)) 0 0 clamp(0.65rem, 2vw, 1.35rem);
   border: 1px solid color-mix(in srgb, var(--item-color) 62%, rgba(255, 255, 255, 0.18));
   border-radius: 4px;
   background: rgba(5, 5, 7, 0.94);
@@ -887,7 +887,7 @@ input[type="text"]:focus {
 
 .event-segment.compact .event-segment-label {
   transform: translateY(-1.4rem);
-  margin-top: 0;
+  margin-top: var(--label-shift, 0px);
   background: rgba(5, 5, 7, 0.96);
   color: var(--item-color);
 }

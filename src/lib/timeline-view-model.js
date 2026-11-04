@@ -16,6 +16,10 @@ const MAX_SEGMENT_EDGE_MIX_PCT = 90;
 const MIN_SEGMENT_GLOW_MIX_PCT = 12;
 const MAX_SEGMENT_GLOW_MIX_PCT = 34;
 const DEFAULT_POINT_LABEL_STACK_PX = 26;
+// A span label is about 22 px tall, 0.45rem below its band's top, or lifted 1.4rem on a thin band.
+const DEFAULT_SPAN_LABEL_STACK_PX = 24;
+const DEFAULT_SPAN_LABEL_INSET_PX = 7;
+const DEFAULT_SPAN_LABEL_COMPACT_LIFT_PX = 22;
 const CLUSTER_SPREAD_GAP_FACTOR = 1.4;
 const CLUSTER_SPREAD_VIEWPORT_FRACTION = 0.6;
 const CLUSTER_SPREAD_MIN_FACTOR = 1.5;
@@ -97,6 +101,43 @@ function annotatePointClusters(segments, labelStackPx) {
   }
 
   return segments;
+}
+
+// A span's label sits at the top of its band (or just above a band too thin to hold it), so bands
+// that begin at nearly the same height would print one label over another. Each label may drop
+// only as far as it still names its band: mostly inside a tall band (at most half the label may
+// hang past its bottom), or no lower than a thin band's bottom edge, where it hangs under the band
+// like an instant's label. Labels with the least room
+// are placed first, each at the highest free slot at or below its natural spot; a label with no
+// free slot in reach stays put, and later labels still make way for it.
+// Bands are in viewport pixels ({ id, top, bottom, compact }); returns id -> downward shift in px.
+export function stackSpanLabels(bands, options = {}) {
+  const { labelStackPx = DEFAULT_SPAN_LABEL_STACK_PX, labelInsetPx = DEFAULT_SPAN_LABEL_INSET_PX, compactLiftPx = DEFAULT_SPAN_LABEL_COMPACT_LIFT_PX } = options;
+  const labels = bands
+    .map((band) => ({
+      band,
+      naturalY: band.compact ? band.top - compactLiftPx : band.top + labelInsetPx,
+      lowestY: band.compact ? band.bottom : band.bottom - labelStackPx / 2,
+    }))
+    .sort((a, b) => a.lowestY - b.lowestY || a.naturalY - b.naturalY);
+  const placed = [];
+  const shifts = new Map();
+
+  for (const { band, naturalY, lowestY } of labels) {
+    let y = naturalY;
+    for (const slot of placed) {
+      if (slot.start >= y + labelStackPx) break;
+      if (slot.end > y) y = slot.end;
+    }
+    if (y > lowestY) y = naturalY;
+
+    shifts.set(band.id, y - naturalY);
+    const slot = { start: y, end: y + labelStackPx };
+    const index = placed.findIndex((other) => other.start > slot.start);
+    placed.splice(index === -1 ? placed.length : index, 0, slot);
+  }
+
+  return shifts;
 }
 
 // The zoom that pulls a stack apart: enough that its closest neighbors clear the label height,

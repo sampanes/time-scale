@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildVerticalTimelineViewModel, getClusterSpreadPxPerMa, getVerticalTimelineRange } from "../src/lib/timeline-view-model.js";
+import { buildVerticalTimelineViewModel, getClusterSpreadPxPerMa, getVerticalTimelineRange, stackSpanLabels } from "../src/lib/timeline-view-model.js";
 
 test("getVerticalTimelineRange pads selected span by ratio", () => {
   const range = getVerticalTimelineRange([{ start_ma: 100, end_ma: 50 }], { rangePaddingRatio: 0.1 });
@@ -187,6 +187,58 @@ test("a zero stack height keeps every label and spans never stack", () => {
 
   assert.ok(model.segments.filter((segment) => segment.isPoint).every((segment) => segment.labelVisible && segment.cluster === null));
   assert.equal(model.segments.find((segment) => segment.id === "span").cluster, undefined, "spans are left alone");
+});
+
+const band = (id, top, bottom, compact = false) => ({ id, top, bottom, compact });
+const spanLabelOptions = { labelStackPx: 24, labelInsetPx: 7, compactLiftPx: 22 };
+
+test("span labels that start together stack down their bands instead of overprinting", () => {
+  const shifts = stackSpanLabels([band("c", 100, 900), band("a", 100, 900), band("b", 101, 900)], spanLabelOptions);
+
+  assert.deepEqual([...shifts.values()].sort((x, y) => x - y), [0, 24, 47]);
+  assert.equal(shifts.get("b"), 47, "the band starting lowest takes the lowest slot");
+});
+
+test("a thin band's label rides above it, so the tall bands beneath keep their own top slots", () => {
+  const shifts = stackSpanLabels([band("sun", 100, 102, true), band("red-dwarf", 100, 700), band("proxima", 100, 800)], spanLabelOptions);
+
+  assert.equal(shifts.get("sun"), 0);
+  assert.equal(shifts.get("red-dwarf"), 0);
+  assert.equal(shifts.get("proxima"), 24);
+});
+
+test("among span labels that start together the shortest band takes the top slot", () => {
+  // Phanerozoic, Paleozoic, and Cambrian all begin at 538.8 Ma; only the eon has room to drop far.
+  const shifts = stackSpanLabels([band("phanerozoic", 100, 900), band("paleozoic", 100, 400), band("cambrian", 100, 166)], spanLabelOptions);
+
+  assert.equal(shifts.get("cambrian"), 0);
+  assert.equal(shifts.get("paleozoic"), 24);
+  assert.equal(shifts.get("phanerozoic"), 48);
+});
+
+test("a span label with no room left in its band stays put, and the others make way for it", () => {
+  const crowded = stackSpanLabels([band("first", 100, 131), band("second", 100, 131)], spanLabelOptions);
+  assert.equal(crowded.get("first"), 0);
+  assert.equal(crowded.get("second"), 0, "pushing it down would leave its band");
+
+  const shifts = stackSpanLabels([band("long", 100, 900), band("short", 101, 131)], spanLabelOptions);
+  assert.equal(shifts.get("short"), 0);
+  assert.equal(shifts.get("long"), 25, "the long band drops below the label that could not move");
+});
+
+test("thin bands beside a taller one all keep a readable label", () => {
+  // Sirius B, Betelgeuse, and Sirius A as measured in the Stars So Far view on a desktop window.
+  const shifts = stackSpanLabels([band("sirius-a", 687, 727), band("sirius-b", 687, 691, true), band("betelgeuse", 695, 697, true)], spanLabelOptions);
+
+  assert.equal(shifts.get("sirius-b"), 0);
+  assert.equal(shifts.get("betelgeuse"), 16, "hangs just under Sirius B's label");
+  assert.equal(shifts.get("sirius-a"), 19, "drops into its own band below both");
+});
+
+test("span labels that already clear each other are not moved", () => {
+  const shifts = stackSpanLabels([band("upper", 100, 900), band("lower", 200, 900), band("thin", 400, 410, true)], spanLabelOptions);
+
+  assert.ok([...shifts.values()].every((shift) => shift === 0));
 });
 
 test("getClusterSpreadPxPerMa zooms just far enough for the closest neighbors to clear the label", () => {
