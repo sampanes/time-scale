@@ -21,6 +21,18 @@ export const TIMELINE_ITEMS = [
   { id: "jack-hills-zircons", name: "Oldest Zircons (Jack Hills)", type: "event", start_ma: 4400, end_ma: 4400, aliases: ["jack hills", "oldest zircon", "cool early earth"], wikiTitle: "Jack Hills" },
   { id: "late-heavy-bombardment", name: "Proposed Late Heavy Bombardment", type: "event", start_ma: 4200, end_ma: 3400, aliases: ["late heavy bombardment", "lhb", "prolonged lunar bombardment", "lunar cataclysm"], wikiTitle: "Late Heavy Bombardment", note: "Whether the early impact record reflects a brief spike near 3.9 Ga or the tail of a longer declining bombardment remains debated." },
 
+  // Star lifespans: birth to end of fusion, with markers for how much of today's stellar mass had formed by when.
+  // Each star carries a color near its real hue so overlapping lifespans stay distinguishable.
+  { id: "stellar-mass-half-formed", name: "Half of Today's Stellar Mass Has Formed", type: "event", start_ma: 9000, end_ma: 9000, aliases: ["half of stars formed", "stellar mass half", "cosmic star formation history"], wikiTitle: "Star formation", note: "Madau and Dickinson (2014): about half of the stellar mass in today's universe had formed by redshift 1.3, about 9 billion years ago." },
+  { id: "stellar-mass-three-quarters-formed", name: "Three Quarters of Today's Stellar Mass Has Formed", type: "event", start_ma: 6500, end_ma: 6500, aliases: ["three quarters of stars formed", "stellar mass three quarters"], wikiTitle: "Star formation", note: "Only about a quarter of today's stellar mass formed after redshift 0.7, about 6.5 billion years ago. The Sun formed later still, so most of the stellar mass made so far is older than the Sun." },
+  { id: "sun-lifespan", name: "The Sun: Birth to White Dwarf", type: "event", start_ma: 4567.3, end_ma: -7500, color: "#c9a227", aliases: ["sun lifespan", "life of the sun", "sun birth to death"], wikiTitle: "Sun", note: "The Sun leaves the main sequence in about 5 billion years and settles as a white dwarf around 7.5 billion years from now. Compared with the stars made so far it is a latecomer. Compared with every star that will ever form it is very early, because small red dwarfs keep forming and burning for trillions of years." },
+  { id: "star-hd-140283", name: "HD 140283 (Methuselah Star)", type: "event", start_ma: 12010, end_ma: -2000, color: "#b8692c", aliases: ["hd 140283", "methuselah star", "oldest nearby star"], wikiTitle: "HD 140283", note: "Age about 12.0 billion years (Tang and Joyce 2021), revised down from earlier estimates near 14.5 billion that conflicted with the age of the universe. It is already a subgiant; the end date is a rough estimate of when it becomes a white dwarf, not a published value." },
+  { id: "star-2mass-j1808-b", name: "2MASS J18082002-5104378 B (Ancient Red Dwarf)", type: "event", start_ma: 13535, end_ma: -3_000_000, color: "#8e2a3a", aliases: ["2mass j18082002", "2mass j1808", "ancient red dwarf", "ultra metal poor star"], wikiTitle: "2MASS J18082002-5104378", note: "A 0.14 solar-mass companion formed about 13.5 billion years ago, among the oldest known stars. Stars this small burn for trillions of years; about 3 trillion is a rough figure for its mass, so one of the first stars will outlive the Sun by a factor of hundreds." },
+  { id: "star-proxima-centauri", name: "Proxima Centauri", type: "event", start_ma: 4850, end_ma: -4_000_000, color: "#d0573f", aliases: ["proxima centauri", "proxima", "nearest star"], wikiTitle: "Proxima Centauri", note: "About 4.85 billion years old, slightly older than the Sun. As a red dwarf of about 0.12 solar masses it should stay on the main sequence for roughly 4 trillion years." },
+  { id: "star-sirius-a", name: "Sirius A", type: "event", start_ma: 240, end_ma: -1000, color: "#4a7fc1", aliases: ["sirius", "sirius a", "dog star"], wikiTitle: "Sirius", note: "The Sirius system formed about 225-250 million years ago (Liebert et al. 2005). Sirius A is about twice the Sun's mass, so it burns faster; the end date is a rough estimate of about a billion years from now." },
+  { id: "star-sirius-b", name: "Sirius B (Already a White Dwarf)", type: "event", start_ma: 240, end_ma: 124, color: "#9aa7b8", aliases: ["sirius b", "pup star", "sirius white dwarf"], wikiTitle: "Sirius", note: "Born with Sirius A but about five times the Sun's mass, it burned out in roughly 100 million years and has been cooling as a white dwarf for about 124 million years (Liebert et al. 2005)." },
+  { id: "star-betelgeuse", name: "Betelgeuse: Birth to Supernova", type: "event", start_ma: 8.5, end_ma: -0.1, color: "#c4512b", aliases: ["betelgeuse lifespan", "betelgeuse life", "red supergiant lifespan"], wikiTitle: "Betelgeuse", note: "A massive star only about 8-8.5 million years old, expected to explode within about 100,000 years. Its whole life is shorter than the time since the dinosaurs died." },
+
   // Eons
   { id: "hadean", name: "Hadean", type: "eon", start_ma: 4567, end_ma: 4031, aliases: ["hadean eon", "hadean"] },
   { id: "archean", name: "Archean", type: "eon", start_ma: 4031, end_ma: 2500, aliases: ["archean", "archaean"] },
@@ -647,6 +659,21 @@ export const PRESETS = [
     label: "Big Bang -> Heat Death",
     group: "Cosmos & stories",
     itemIds: ["big-bang", "first-stars", "first-life", "first-fish", "first-sharks", "first-dinosaurs", "mass-extinction-kpg", "first-humans", "now", "sun-expands", "heat-death"],
+  },
+  {
+    id: "stars-so-far",
+    label: "Stars So Far",
+    group: "Cosmos & stories",
+    itemIds: [
+      "big-bang", "first-stars", "milky-way-forms", "cosmic-noon", "stellar-mass-half-formed", "star-hd-140283",
+      "stellar-mass-three-quarters-formed", "sun-lifespan", "star-sirius-a", "star-sirius-b", "star-betelgeuse",
+    ],
+  },
+  {
+    id: "stars-long-view",
+    label: "Stars: The Long View",
+    group: "Cosmos & stories",
+    itemIds: ["star-2mass-j1808-b", "sun-lifespan", "star-proxima-centauri"],
   },
   {
     id: "origin-myths",
