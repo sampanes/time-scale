@@ -13,6 +13,8 @@ test("formatMa formats past, present, recent, and future values", () => {
   assert.equal(formatMa(0.012), "12 kya");
   assert.equal(formatMa(-5_000), "+5.0 Ga future");
   assert.equal(formatMa(-1e32), "+1.00e+32 Ma future");
+  assert.equal(formatMa(-4_000_000), "+4.0 trillion yrs future");
+  assert.equal(formatDurationMa(3_013_535), "3.01 trillion yrs");
 });
 
 test("formatDurationMa removes relative direction", () => {

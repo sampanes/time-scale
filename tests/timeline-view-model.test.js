@@ -227,7 +227,7 @@ test("a span label with no room left in its band stays put, and the others make 
 });
 
 test("thin bands beside a taller one all keep a readable label", () => {
-  // Sirius B, Betelgeuse, and Sirius A as measured in the Stars So Far view on a desktop window.
+  // Sirius B, Betelgeuse, and Sirius A as measured in the Star Lifespans view on a desktop window.
   const shifts = stackSpanLabels([band("sirius-a", 687, 727), band("sirius-b", 687, 691, true), band("betelgeuse", 695, 697, true)], spanLabelOptions);
 
   assert.equal(shifts.get("sirius-b"), 0);
